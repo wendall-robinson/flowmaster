@@ -11,14 +11,14 @@
 
 ## Installation
 
-To install `tracex`, use the following `go get` command:
+To install `traceflow`, use the following `go get` command:
 
 ```bash
 go get -u github.com/wendall-robinson/traceflow
 ```
 
 ## Usage
-Below are some examples demonstrating how to use tracex:
+Below are some examples demonstrating how to use traceflow:
 
 ### Creating a New Trace
 Start by creating a new trace with a specific service name:
@@ -72,7 +72,7 @@ func operation(ctx context.Context) {
 }
 ```
 ### Handling HTTP Requests
-tracex can also inject and extract traces from HTTP requests, aiding in distributed tracing across microservices:
+traceflow can also inject and extract traces from HTTP requests, aiding in distributed tracing across microservices:
 
 ```golang
 func httpHandler(w http.ResponseWriter, r *http.Request) {

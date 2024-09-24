@@ -1,4 +1,4 @@
-package gotraceit
+package traceflow
 
 import (
 	"context"
@@ -31,7 +31,7 @@ func TestNewTrace(t *testing.T) {
 	ctx := context.Background()
 	tracerName := "test-service"
 
-	trace := NewTracex(ctx, tracerName)
+	trace := New(ctx, tracerName)
 
 	if trace.tracer == nil {
 		t.Error("Tracer should not be nil")
@@ -41,9 +41,10 @@ func TestNewTrace(t *testing.T) {
 // TestAddAttributes tests adding attributes to a trace.
 func TestAddAttributes(t *testing.T) {
 	ctx := context.Background()
-	trace := NewTracex(ctx, "test-service")
+	trace := New(ctx, "test-service")
 
-	trace.AddKeyValue("key1", "value1").AddAttributes(
+	trace.AddAttribute(
+		attribute.String("key1", "value1"),
 		attribute.String("key2", "value2"),
 		attribute.Int("key3", 3),
 	)
@@ -56,7 +57,7 @@ func TestAddAttributes(t *testing.T) {
 // TestInjectHTTPContext tests the injection of HTTP context.
 func TestInjectHTTPContext(t *testing.T) {
 	ctx := context.Background()
-	trace := NewTracex(ctx, "test-service")
+	trace := New(ctx, "test-service")
 
 	defer trace.Start("inject-http-context").End()
 
@@ -72,7 +73,7 @@ func TestInjectHTTPContext(t *testing.T) {
 // TestExtractHTTPContext tests the extraction of HTTP context.
 func TestExtractHTTPContext(t *testing.T) {
 	ctx := context.Background()
-	trace := NewTracex(ctx, "test-service")
+	trace := New(ctx, "test-service")
 
 	//nolint:noctx
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -90,7 +91,7 @@ func TestExtractHTTPContext(t *testing.T) {
 
 func TestGetTraceID(t *testing.T) {
 	ctx := context.Background()
-	trace := NewTracex(ctx, "test-service")
+	trace := New(ctx, "test-service")
 
 	// Initially, before the span is started, TraceID should be empty
 	if traceID := trace.GetTraceID(); traceID != "" {

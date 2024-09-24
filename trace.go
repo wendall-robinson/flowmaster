@@ -1,22 +1,19 @@
 // Package gotraceit provides a simple wrapper around OpenTelemetry to make it easier to create and manage traces.
-package gotraceit
+package traceflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"reflect"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// Tracex is a struct that holds the context, tracer, span, and attributes for a trace
-type Tracex struct {
+// traceflow is a struct that holds the context, tracer, span, and attributes for a trace
+type Trace struct {
 	ctx          context.Context
 	service      string
 	tracer       trace.Tracer
@@ -24,15 +21,15 @@ type Tracex struct {
 	parentSpanID string
 	attrs        []attribute.KeyValue
 	options      []trace.SpanStartOption
-	spanKind     *SpanKindSetter
+	spanKind     *SpanKind
 	links        []trace.Link
 }
 
-// NewTracex creates a new trace object using the specified tracer from the OpenTelemetry provider.
+// New creates a new Trace object using the specified tracer from the OpenTelemetry provider.
 // If context is nil, as a valid context is created for the trace. This context is used for
 // trace propagation and management.
-// NewTracex creates a new trace object and captures the parent span ID if available.
-func NewTracex(ctx context.Context, spanName string) *Tracex {
+// New creates a new trace object and captures the parent span ID if available.
+func New(ctx context.Context, spanName string) *Trace {
 	var (
 		traceCtx     context.Context
 		parentSpanID string
@@ -47,7 +44,7 @@ func NewTracex(ctx context.Context, spanName string) *Tracex {
 		}
 	}
 
-	return &Tracex{
+	return &Trace{
 		ctx:          traceCtx,
 		service:      spanName,
 		tracer:       otel.GetTracerProvider().Tracer(spanName),
@@ -58,7 +55,7 @@ func NewTracex(ctx context.Context, spanName string) *Tracex {
 }
 
 // Start creates a new span within the existing trace with and a name
-func (t *Tracex) Start(name string) *Tracex {
+func (t *Trace) Start(name string) *Trace {
 	if len(t.attrs) > 0 {
 		t.options = append(t.options, trace.WithAttributes(t.attrs...))
 	}
@@ -73,15 +70,59 @@ func (t *Tracex) Start(name string) *Tracex {
 	return t
 }
 
-// AddAttributes adds attributes to the trace
-func (t *Tracex) AddAttributes(attrs ...attribute.KeyValue) *Tracex {
+// AddAttribute appends one or more OpenTelemetry attributes to the current trace.
+// This method accepts variadic attribute.KeyValue arguments, allowing the caller
+// to add single or multiple attributes in a single call. It supports both OpenTelemetry
+// predefined attributes (e.g., String, Int, Bool) and custom attributes formatted
+// as attribute.KeyValue objects.
+//
+// Example usage:
+//
+//	// Add a single attribute
+//	trace.AddAttribute(attribute.String("user_id", "123"))
+//
+//	// Add multiple attributes
+//	trace.AddAttribute(
+//	    attribute.String("user_id", "123"),
+//	    attribute.Int("http_status", 200),
+//	    attribute.Bool("success", true),
+//	)
+//
+// This unified approach simplifies the API by eliminating the need for separate methods
+// to handle single vs. multiple attributes.
+func (t *Trace) AddAttribute(attrs ...attribute.KeyValue) *Trace {
 	t.attrs = append(t.attrs, attrs...)
 
 	return t
 }
 
-// AddAttributeIf adds an attribute to the trace if the condition is true
-func (t *Tracex) AddAttributeIf(cond bool, key string, value interface{}) *Tracex {
+// AddAttributeIf conditionally adds an attribute to the trace based on a boolean condition.
+// If the condition (cond) is true, the attribute specified by the key and value is added to
+// the trace. The method automatically determines the correct OpenTelemetry attribute type
+// (e.g., string, int, float, bool) based on the value provided.
+//
+// Supported types for the value parameter include:
+// - string
+// - int, int32, int64
+// - uint, uint32, uint64
+// - float32, float64
+// - bool
+//
+// If the value is of an unsupported type, the attribute is not added.
+//
+// Example usage:
+//
+//	// Conditionally add an attribute only if the user ID is valid
+//	trace.AddAttributeIf(isValidUser, "user_id", "12345")
+//
+//	// Conditionally add a numeric attribute
+//	trace.AddAttributeIf(isSuccess, "response_time", 150)
+//
+// This method is particularly useful when attributes should only be included in the trace
+// under specific conditions (e.g., based on business logic or performance metrics).
+//
+// If the condition is false, no attribute is added, and the trace remains unchanged.
+func (t *Trace) AddAttributeIf(cond bool, key string, value interface{}) *Trace {
 	if cond {
 		var attr attribute.KeyValue
 
@@ -106,91 +147,116 @@ func (t *Tracex) AddAttributeIf(cond bool, key string, value interface{}) *Trace
 	return t
 }
 
-// AddKeyValue adds attributes to the trace
-func (t *Tracex) AddKeyValue(key, value string) *Tracex {
-	attr := attribute.String(key, value)
-	t.attrs = append(t.attrs, attr)
-
-	return t
-}
-
-// AddJSON adds JSON to the span attributes as a string
-func (t *Tracex) AddJSON(payload json.RawMessage) *Tracex {
-	jsonString := string(payload)
-	jsonAttr := attribute.String("payload", jsonString)
-	t.attrs = append(t.attrs, jsonAttr)
-
-	return t
-}
-
-// AddLink adds a link to another span to this Trace's span.
-// The linked span can be from the same or different trace.
-func (t *Tracex) AddLink(spanContext trace.SpanContext) *Tracex {
+// AddLink adds a link to another span within the current span.
+// Span links are used to connect spans that are related but do not have a direct
+// parent-child relationship. This is useful when spans from different traces or
+// parts of the same trace are logically related and should be connected.
+//
+// The linked span can come from either the same trace or a different trace.
+// The link helps trace analyzers understand the relationships between otherwise
+// unrelated spans and allows them to be visualized as part of a larger operation.
+//
+// Example usage:
+//
+//	// Link another span's context to the current span
+//	trace.AddLink(otherSpanContext)
+//
+// This method is particularly useful in scenarios like batch processing, where a
+// single span may be related to multiple spans that are processed together, but
+// do not have direct hierarchical relationships.
+//
+// Notes:
+//   - The linked span is represented by its SpanContext, which carries the metadata
+//     for that span (trace ID, span ID, etc.).
+//   - This method returns the Trace object, allowing chaining of additional methods.
+func (t *Trace) AddLink(spanContext trace.SpanContext) *Trace {
 	link := trace.Link{SpanContext: spanContext}
 	t.links = append(t.links, link)
 
 	return t
 }
 
-// InjectHTTPContext injects the trace context into an HTTP request's headers.
-// This method is a no-op if t.ctx is nil, reflecting situations where the Trace
-// was improperly instantiated or if context handling was bypassed.
-func (t *Tracex) InjectHTTPContext(req *http.Request) *Tracex {
-	if t.ctx == nil {
-		return t
-	}
-
-	propagator := otel.GetTextMapPropagator()
-	carrier := propagation.HeaderCarrier(req.Header)
-	propagator.Inject(t.ctx, carrier)
-
-	return t
-}
-
-// ExtractHTTPContext extracts the trace context from an HTTP request and updates the Trace's context.
-func (t *Tracex) ExtractHTTPContext(req *http.Request) *Tracex {
-	propagator := otel.GetTextMapPropagator()
-	ctx := propagator.Extract(t.ctx, propagation.HeaderCarrier(req.Header))
-	t.ctx = ctx
-
-	return t
-}
-
-// RecordError records an error to the span and sets the span status to Error.
-func (t *Tracex) RecordError(err error) {
-	if err != nil {
-		t.span.RecordError(err)
-		t.span.SetStatus(codes.Error, err.Error())
-	}
-}
-
-// SetStatus sets the span status with a custom code and message.
-func (t *Tracex) SetStatus(code codes.Code, message string) {
+// SetStatus sets the status of the current span with a custom code and message.
+// This is useful for recording the outcome of the operation represented by the span,
+// providing context on whether the operation succeeded, failed, or encountered an error.
+//
+// The status code should be chosen from OpenTelemetry's predefined status codes (codes.Code),
+// which include options like:
+// - codes.Ok (indicating success)
+// - codes.Error (indicating failure)
+//
+// The message should provide additional context or details about the status.
+//
+// Example usage:
+//
+//	// Set the span's status to indicate an error
+//	trace.SetStatus(codes.Error, "database connection failed")
+//
+// Notes:
+// - Ensure the span is properly started before setting its status.
+// - This method allows the trace to capture both the status code and a descriptive message.
+func (t *Trace) SetStatus(code codes.Code, message string) {
 	t.span.SetStatus(code, message)
 }
 
-// SetSuccess marks the span status as Ok and sets a custom success message.
-func (t *Tracex) SetSuccess(message string) {
+// SetSuccess marks the current span as successful by setting its status to codes.Ok,
+// along with a custom success message. This is useful for marking the span as completed
+// without any errors and providing a message that reflects the success.
+//
+// Example usage:
+//
+//	// Mark the span as successful with a custom message
+//	trace.SetSuccess("operation completed successfully")
+//
+// This method is a shorthand for calling SetStatus with codes.Ok, simplifying the
+// process of marking successful spans. It is particularly useful when you want to
+// standardize how success is recorded in your traces.
+func (t *Trace) SetSuccess(message string) {
 	t.span.SetStatus(codes.Ok, message)
 }
 
-// RecordFailure records an error to the span, sets the span status to Error, and sets a custom message.
-func (t *Tracex) RecordFailure(err error, message string) {
+// RecordFailure records an error to the current span and marks the span's status as Error
+// with a custom message. This method is useful for handling failure scenarios where
+// both the error itself and a custom message need to be captured in the trace.
+//
+// The error is recorded using the RecordError method, and the span's status is set to
+// codes.Error to reflect that the span represents a failed operation. A custom message
+// is also provided to give additional context on the nature of the failure.
+//
+// Example usage:
+//
+//	// Record a failure in the span with an error and a custom message
+//	trace.RecordFailure(err, "failed to process user request")
+//
+// This method is a convenient way to handle both error reporting and span status setting
+// in failure cases, ensuring that the trace contains both the error details and the
+// status information.
+//
+// Notes:
+//   - Ensure the span is properly started before recording failures.
+//   - The recorded error and message will be part of the trace and can be viewed in
+//     trace analysis tools for debugging and diagnostics.
+func (t *Trace) RecordFailure(err error, message string) {
 	t.RecordError(err)
 	t.SetStatus(codes.Error, message)
 }
 
-// SpanKind sets the span kind to the provided value
-func (t *Tracex) SpanKind() *SpanKindSetter {
-	if t.spanKind == nil {
-		t.spanKind = &SpanKindSetter{trace: t}
-	}
-
-	return t.spanKind
-}
-
-// GetTraceID returns the trace ID of the current span
-func (t *Tracex) GetTraceID() string {
+// GetTraceID returns the unique trace ID of the current span.
+// The trace ID is part of the span's context and is used to identify the
+// trace in a distributed system.
+//
+// If the span's context is valid, the trace ID is returned as a string.
+// Otherwise, an empty string is returned.
+//
+// Example usage:
+//
+//	traceID := trace.GetTraceID()
+//	fmt.Println("Current Trace ID:", traceID)
+//
+// Notes:
+//   - The trace ID is useful for tracking and correlating traces across multiple
+//     services in distributed systems.
+func (t *Trace) GetTraceID() string {
 	if t.span != nil {
 		sc := t.span.SpanContext()
 		if sc.IsValid() {
@@ -201,18 +267,73 @@ func (t *Tracex) GetTraceID() string {
 	return ""
 }
 
-// GetParentID returns the parent ID of the current span
-func (t *Tracex) GetParentID() string {
+// GetParentID returns the parent span ID of the current trace, if it exists.
+// This ID represents the span from which the current span is derived, allowing
+// the trace to establish relationships between parent and child spans.
+//
+// If the parent span ID is available, it is returned as a string. If no parent
+// span exists, an empty string is returned.
+//
+// Example usage:
+//
+//	parentID := trace.GetParentID()
+//	fmt.Println("Parent Span ID:", parentID)
+//
+// Notes:
+//   - The parent span ID is important for understanding the hierarchy of spans
+//     within a distributed trace.
+func (t *Trace) GetParentID() string {
 	return t.parentSpanID
 }
 
-// GetContext returns the context of the current span
-func (t *Tracex) GetContext() context.Context {
+// GetContext returns the context associated with the current span.
+// The context carries metadata, including trace and span information,
+// which is used for trace propagation across service boundaries.
+//
+// Example usage:
+//
+//	ctx := trace.GetContext()
+//	// Use the context in subsequent operations
+//
+// This method is particularly useful when you need to pass the context
+// to downstream services or operations that require trace propagation.
+//
+// Notes:
+//   - Ensure that the context is valid and has been properly initialized before
+//     passing it to other functions or services.
+func (t *Trace) GetContext() context.Context {
 	return t.ctx
 }
 
-// End ends the current span
-func (t *Tracex) End() {
+// End marks the completion of the current span, signaling the end of the operation
+// being traced. This method should be called after the span's operation has completed,
+// allowing the trace to accurately record the duration and any final status or attributes
+// of the span.
+//
+// Example usage:
+//
+//	// Start a span
+//	trace.Start("operation")
+//
+//	// Perform some operations...
+//
+//	// End the span once the operation is complete
+//	trace.End()
+//
+// Best Practices:
+//
+//	// Ensure that the span is always ended, even in the case of errors, by using defer:
+//	defer trace.Start("operation").End()
+//
+// The End method is a critical part of the span lifecycle, as it ensures the span is
+// properly closed and its data is recorded in the trace. If the span is nil, the method
+// is a no-op, meaning it will do nothing.
+//
+// Notes:
+//   - It is important to ensure that spans are always ended, either explicitly or
+//     using defer to guarantee they are closed, even in the case of errors.
+//   - Once a span has ended, no additional attributes or status can be set on it.
+func (t *Trace) End() {
 	if t.span != nil {
 		t.span.End()
 	}

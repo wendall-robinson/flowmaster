@@ -1,6 +1,10 @@
-package gotraceit
+package traceflow
 
-import "go.opentelemetry.io/otel/attribute"
+import (
+	"encoding/json"
+
+	"go.opentelemetry.io/otel/attribute"
+)
 
 // Attribute wraps the OpenTelemetry attribute type
 type Attribute attribute.KeyValue
@@ -43,4 +47,34 @@ func BoolAttr(key string, value bool) Attribute {
 // BoolSliceAttr creates a bool slice OTEL attribute.
 func BoolSliceAttr(key string, value []bool) Attribute {
 	return Attribute(attribute.BoolSlice(key, value))
+}
+
+// AddJSON adds a JSON payload as a string attribute to the trace.
+// The JSON payload is passed as a json.RawMessage, which is then converted
+// to a string and added to the trace as an OpenTelemetry string attribute
+// with the key "payload". This method is useful when you want to include
+// JSON-encoded data as part of the trace's attributes.
+//
+// Example usage:
+//
+//	jsonPayload := json.RawMessage(`{"key":"value"}`)
+//	trace.AddJSON(jsonPayload)
+//
+// The resulting trace attribute will include the JSON data as a string:
+//
+//	"payload": "{\"key\":\"value\"}"
+//
+// This method is particularly useful when you need to include structured data
+// (such as API responses or request bodies) in your traces, but want to store
+// it as a single string attribute.
+//
+// Note that the JSON data is not parsed or validated, and is added directly
+// as a string. Be mindful of the size of the JSON payload, as OpenTelemetry
+// attributes have practical size limits that should not be exceeded.
+func (t *Trace) AddJSON(payload json.RawMessage) *Trace {
+	jsonString := string(payload)
+	jsonAttr := attribute.String("payload", jsonString)
+	t.attrs = append(t.attrs, jsonAttr)
+
+	return t
 }
