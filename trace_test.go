@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"runtime"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -224,5 +226,95 @@ func TestGetParentID(t *testing.T) {
 	// Now, trace2 should have trace1's span as its parent
 	if parentID := trace2.GetParentID(); parentID == "" {
 		t.Error("Expected valid parent ID in trace2, but got empty string")
+	}
+}
+
+// TestWithSystemInfo tests that system info (CPU, memory, disk) attributes are added.
+func TestWithSystemInfo(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service", WithSystemInfo())
+
+	// Check that CPU, memory, and disk attributes are added (sample assertions)
+	if len(trace.attrs) == 0 {
+		t.Fatalf("Expected system attributes to be added, got none")
+	}
+	// Example: Check that the CPU count attribute exists
+	found := false
+	for _, attr := range trace.attrs {
+		if attr.Key == "cpu.count" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected 'cpu.count' attribute, but it was not found")
+	}
+}
+
+// TestWithAttributes tests that custom attributes are added via WithAttributes.
+func TestWithAttributes(t *testing.T) {
+	customAttrs := []attribute.KeyValue{
+		attribute.String("custom.key1", "value1"),
+		attribute.Int("custom.key2", 42),
+	}
+
+	ctx := context.Background()
+	trace := New(ctx, "test-service", WithAttributes(customAttrs...))
+
+	if len(trace.attrs) != 2 {
+		t.Fatalf("Expected 2 custom attributes, got %d", len(trace.attrs))
+	}
+	if trace.attrs[0] != customAttrs[0] {
+		t.Errorf("Expected first custom attribute to be %v, got %v", customAttrs[0], trace.attrs[0])
+	}
+	if trace.attrs[1] != customAttrs[1] {
+		t.Errorf("Expected second custom attribute to be %v, got %v", customAttrs[1], trace.attrs[1])
+	}
+}
+
+// TestWithConcurrencyInfo tests that the number of goroutines is added via WithConcurrencyInfo.
+func TestWithConcurrencyInfo(t *testing.T) {
+	ctx := context.TODO()
+	trace := New(ctx, "test-service", WithConcurrencyInfo())
+
+	expectedGoroutines := runtime.NumGoroutine()
+	found := false
+
+	for _, attr := range trace.attrs {
+		if attr.Key == "goroutine.count" {
+			if attr.Value.AsInt64() != int64(expectedGoroutines) {
+				t.Errorf("Expected goroutine count to be %d, got %d", expectedGoroutines, attr.Value.AsInt64())
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("Expected 'goroutine.count' attribute, but it was not found")
+	}
+}
+
+// TestWithEnVars tests that environment variables are correctly added as attributes.
+func TestWithEnVars(t *testing.T) {
+	// Set environment variables for testing
+	os.Setenv("SERVICE_NAME", "test-service")
+	os.Setenv("DEPLOYMENT_ENV", "production")
+	defer os.Unsetenv("SERVICE_NAME")
+	defer os.Unsetenv("DEPLOYMENT_ENV")
+
+	envKeys := []string{"SERVICE_NAME", "DEPLOYMENT_ENV", "NON_EXISTENT_ENV"}
+	ctx := context.TODO()
+	trace := New(ctx, "test-service", WithEnVars(envKeys))
+
+	if len(trace.attrs) != 2 {
+		t.Fatalf("Expected 2 environment variables, got %d", len(trace.attrs))
+	}
+
+	if trace.attrs[0] != attribute.String("SERVICE_NAME", "test-service") {
+		t.Errorf("Expected SERVICE_NAME to be 'test-service', got %v", trace.attrs[0])
+	}
+	if trace.attrs[1] != attribute.String("DEPLOYMENT_ENV", "production") {
+		t.Errorf("Expected DEPLOYMENT_ENV to be 'production', got %v", trace.attrs[1])
 	}
 }
