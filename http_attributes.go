@@ -85,7 +85,6 @@ func (t *Trace) InjectHTTPContext(req *http.Request) *Trace {
 // Notes:
 // - This method updates the Trace's context (t.ctx) with the extracted trace context.
 func (t *Trace) ExtractHTTPContext(req *http.Request) *Trace {
-	// Use the internal OpenTelemetry propagator to extract the context
 	propagator := otel.GetTextMapPropagator()
 	ctx := propagator.Extract(t.ctx, propagation.HeaderCarrier(req.Header))
 	t.ctx = ctx

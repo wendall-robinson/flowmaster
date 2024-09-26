@@ -66,6 +66,11 @@ func main() {
     }
 }
 ```
+### Key Features Demonstrated:
+
+* **Creating and Starting a Trace:** traceflow.New and trace.Start.
+* **Adding Attributes:** trace.AddAttribute to capture custom key-value pairs.
+* **Error Handling:** Using trace.RecordFailure to record errors and failures within the trace.
 
 ### Adding Attributes and Links
 You can add attributes and links to spans easily:
@@ -80,15 +85,116 @@ func operation(ctx context.Context) {
     defer trace.Start("operation").End()
 }
 ```
-### Handling HTTP Requests
-traceflow can also inject and extract traces from HTTP requests, aiding in distributed tracing across microservices:
+## Advanced Features
+### Advanced Features: System Information
+ * **Adding System Information:** Automatically add CPU, memory, and disk usage to your traces:
+    ```go
+    trace.AddCpuInfo().AddMemoryInfo().AddDiskInfo()
+    ```
+* **Add all System Information:** (adds CPU, Memory and Disk info)
+    ```go
+    trace.WithSystemInfo()
+    ```
+### Advanced Features:  Injecting Trace Context into HTTP Requests
+In distributed systems, it's important to propagate the trace context across service boundaries, allowing each service to continue a trace. This is particularly useful in microservice architectures, where HTTP requests are often used to communicate between services.
 
-```golang
-func httpHandler(w http.ResponseWriter, r *http.Request) {
-    trace := traceflow.NewTrace(r.Context(), "web-service")
-    trace.ExtractHTTPContext(r)
+With the InjectHTTPContext method, you can easily inject the trace context into the headers of an outgoing HTTP request, ensuring that the trace information is passed along to downstream services.
 
-    defer trace.Start("http-request").End()
-    // Process the request
+#### InjectHttpContext
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"log"
+	"time"
+
+	"github.com/wendall-robinson/traceflow"
+)
+
+func main() {
+	// Create a new trace
+	ctx := context.Background()
+	trace := traceflow.New(ctx, "example-service")
+
+	// Start a new span for the operation
+	defer trace.Start("http-outgoing-request").End()
+
+	// Create an HTTP request to be sent to another service
+	req, err := http.NewRequest("GET", "http://example.com", nil)
+	if err != nil {
+		log.Fatalf("Failed to create HTTP request: %v", err)
+	}
+
+	// Inject the trace context into the request headers
+	trace.InjectHTTPContext(req)
+
+	// Send the request using an HTTP client
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to send request: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	fmt.Printf("Response status: %s\n", resp.Status)
 }
 ```
+**How It Works:**
+
+* A new trace is started with `traceflow.New()`.
+* The `InjectHTTPContext` method automatically injects the trace context into the request headers, making it possible for the receiving service to extract and continue the trace.
+* The downstream service can use the corresponding `ExtractHTTPContext` method to continue the trace.
+
+This pattern ensures seamless propagation of trace context between services, providing end-to-end visibility in distributed tracing.
+
+#### ExtractHTTPContext
+With the `ExtractHTTPContext` method, you can easily extract the trace context from incoming request headers and continue the trace.
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"log"
+	"github.com/wendall-robinson/traceflow"
+)
+
+func main() {
+	// Start an HTTP server to receive requests
+	http.HandleFunc("/process", func(w http.ResponseWriter, req *http.Request) {
+		// Create a new trace, using the incoming request's context
+		ctx := context.Background()
+		trace := traceflow.New(ctx, "example-service")
+
+		// Extract the trace context from the incoming request headers
+		trace.ExtractHTTPContext(req)
+
+		// Start a new span for this operation
+		defer trace.Start("process-request").End()
+
+		// Simulate some processing
+		fmt.Fprintln(w, "Processing request...")
+
+		log.Println("Request processed, trace continued.")
+	})
+
+	// Start the HTTP server
+	log.Println("Server started on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+```
+**How It Works:**
+
+* A new trace is initialized with `traceflow.New()`.
+* The `ExtractHTTPContext` method extracts the trace context from the incoming HTTP request's headers. This allows the trace context to be continued from where the upstream service left off.
+* A new span is started for the current operation (process-request) and ended after the operation completes.
+
+**Usage:**
+
+When the client service sends a request (such as in the earlier example with InjectHTTPContext), the trace context is passed along in the request headers. The receiving service extracts the context with ExtractHTTPContext and can continue the trace, creating a new span for the current operation.
