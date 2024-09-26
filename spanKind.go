@@ -2,10 +2,20 @@ package traceflow
 
 import "go.opentelemetry.io/otel/trace"
 
+// SpanContext wraps the OpenTelemetry span context type.
+type SpanContext struct {
+	otelSpanContext trace.SpanContext
+}
+
 // SpanKind allows fluent setting of the span kind.
 type SpanKind struct {
 	trace  *Trace
 	option trace.SpanStartOption
+}
+
+// NewSpanContext creates a new SpanContext from OpenTelemetry's span context.
+func NewSpanContext(sc trace.SpanContext) SpanContext {
+	return SpanContext{otelSpanContext: sc}
 }
 
 // SpanKind returns a SpanKind object that allows the caller to set the kind of the span.

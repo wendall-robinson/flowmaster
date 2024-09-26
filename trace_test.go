@@ -47,9 +47,9 @@ func TestAddAttributes(t *testing.T) {
 	trace := New(ctx, "test-service")
 
 	trace.AddAttribute(
-		attribute.String("key1", "value1"),
-		attribute.String("key2", "value2"),
-		attribute.Int("key3", 3),
+		StringAttr("key1", "value1"),
+		StringAttr("key2", "value2"),
+		IntAttr("key3", 3),
 	)
 
 	if len(trace.attrs) != 3 {
@@ -198,7 +198,10 @@ func TestAddLink(t *testing.T) {
 
 	// Create a new span to generate a valid SpanContext
 	_, span := trace.tracer.Start(ctx, "linked-span")
-	spanContext := span.SpanContext()
+	otelSpanContext := span.SpanContext()
+
+	// Wrap the SpanContext using the NewSpanContext function
+	spanContext := NewSpanContext(otelSpanContext)
 
 	// Add the link to the trace
 	trace.AddLink(spanContext)
@@ -253,9 +256,9 @@ func TestWithSystemInfo(t *testing.T) {
 
 // TestWithAttributes tests that custom attributes are added via WithAttributes.
 func TestWithAttributes(t *testing.T) {
-	customAttrs := []attribute.KeyValue{
-		attribute.String("custom.key1", "value1"),
-		attribute.Int("custom.key2", 42),
+	customAttrs := []Attribute{
+		StringAttr("custom.key1", "value1"),
+		IntAttr("custom.key2", 42),
 	}
 
 	ctx := context.Background()
@@ -264,11 +267,11 @@ func TestWithAttributes(t *testing.T) {
 	if len(trace.attrs) != 2 {
 		t.Fatalf("Expected 2 custom attributes, got %d", len(trace.attrs))
 	}
-	if trace.attrs[0] != customAttrs[0] {
-		t.Errorf("Expected first custom attribute to be %v, got %v", customAttrs[0], trace.attrs[0])
+	if trace.attrs[0] != customAttrs[0].otelAttr {
+		t.Errorf("Expected first custom attribute to be %v, got %v", customAttrs[0].otelAttr, trace.attrs[0])
 	}
-	if trace.attrs[1] != customAttrs[1] {
-		t.Errorf("Expected second custom attribute to be %v, got %v", customAttrs[1], trace.attrs[1])
+	if trace.attrs[1] != customAttrs[1].otelAttr {
+		t.Errorf("Expected second custom attribute to be %v, got %v", customAttrs[1].otelAttr, trace.attrs[1])
 	}
 }
 

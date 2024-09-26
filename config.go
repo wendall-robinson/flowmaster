@@ -21,9 +21,13 @@ func WithSystemInfo() Option {
 
 // WithAttributes allows users to provide custom attributes to be added
 // during the Trace object initialization.
-func WithAttributes(attrs ...attribute.KeyValue) Option {
+// WithAttributes allows users to provide custom attributes to be added
+// during the Trace object initialization.
+func WithAttributes(attrs ...Attribute) Option {
 	return func(t *Trace) {
-		t.attrs = append(t.attrs, attrs...)
+		for _, attr := range attrs {
+			t.attrs = append(t.attrs, attr.otelAttr)
+		}
 	}
 }
 

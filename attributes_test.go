@@ -13,8 +13,8 @@ func TestStringAttr(t *testing.T) {
 	attr := StringAttr("key", "value")
 	expected := attribute.String("key", "value")
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -23,8 +23,8 @@ func TestStringSliceAttr(t *testing.T) {
 	attr := StringSliceAttr("key", []string{"value1", "value2"})
 	expected := attribute.StringSlice("key", []string{"value1", "value2"})
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -33,8 +33,8 @@ func TestIntAttr(t *testing.T) {
 	attr := IntAttr("key", 123)
 	expected := attribute.Int("key", 123)
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -43,8 +43,8 @@ func TestIntSliceAttr(t *testing.T) {
 	attr := IntSliceAttr("key", []int{1, 2, 3})
 	expected := attribute.IntSlice("key", []int{1, 2, 3})
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -53,8 +53,8 @@ func TestFloatAttr(t *testing.T) {
 	attr := FloatAttr("key", 1.23)
 	expected := attribute.Float64("key", 1.23)
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -63,8 +63,8 @@ func TestFloatSliceAttr(t *testing.T) {
 	attr := FloatSliceAttr("key", []float64{1.1, 2.2, 3.3})
 	expected := attribute.Float64Slice("key", []float64{1.1, 2.2, 3.3})
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -73,8 +73,8 @@ func TestBoolAttr(t *testing.T) {
 	attr := BoolAttr("key", true)
 	expected := attribute.Bool("key", true)
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 
@@ -83,8 +83,8 @@ func TestBoolSliceAttr(t *testing.T) {
 	attr := BoolSliceAttr("key", []bool{true, false, true})
 	expected := attribute.BoolSlice("key", []bool{true, false, true})
 
-	if attribute.KeyValue(attr) != expected {
-		t.Errorf("Expected attribute %v, got %v", expected, attr)
+	if attr.otelAttr != expected {
+		t.Errorf("Expected attribute %v, got %v", expected, attr.otelAttr)
 	}
 }
 

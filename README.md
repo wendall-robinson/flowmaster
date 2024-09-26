@@ -16,52 +16,53 @@ In modern, distributed systems, it's crucial to have observability tools like tr
 * **Error and Exception Handling**: Capture detailed error and exception information, including stack traces and error messages.
 * **Context Propagation**: Simplifies passing and extracting trace context across service boundaries (e.g., HTTP requests).
 
+## Who Should Use This Package?
+
+* **Go Developers** working in microservice-based or distributed systems who want to integrate OpenTelemetry tracing without writing verbose boilerplate code.
+* Teams and companies seeking enhanced observability to monitor their distributed systems in production environments.
+* Developers who want to **add tracing to existing services with minimal code changes and minimal learning curve.**
+* Anyone who wants a lightweight, flexible tracing solution that can scale with their system and evolve as new OpenTelemetry features are introduced.
 
 ## Installation
-
-To install `traceflow`, use the following `go get` command:
+To install TraceFlow, use `go get`:
 
 ```bash
-go get -u github.com/wendall-robinson/traceflow
+go get github.com/wendall-robinson/traceflow
 ```
 
-## Usage
-Below are some examples demonstrating how to use traceflow:
+## Quick Start
+**Basic Usage Example**
 
-### Creating a New Trace
-Start by creating a new trace with a specific service name:
-
-```golang
+Here's how you can start tracing operations in your Go application using `TraceFlow`:
+```go
 package main
 
 import (
     "context"
     "log"
-    "fmt"
 
     "github.com/wendall-robinson/traceflow"
 )
 
 func main() {
-    var (
-        mathIsHard = fmt.Errorf("math is hard")
-        two = "two"
-        three = 3
-    )
-
     ctx := context.Background()
 
-    trace := traceflow.New(ctx, "example-service").
-        AddAttributes(
-		    attribute.String("param1", two),
-		    attribute.Int("param2", three),
-        )
+    // Create a new trace
+    trace := traceflow.New(ctx, "example-service")
 
-    defer traceflow.Start("main-operation").End()
+    // Start a new operation and add attributes
+    defer trace.Start("main-operation").End()
 
+    // Add custom attributes
+    trace.AddAttribute(
+        traceflow.StringAddr("user_id", "12345"),
+        traceflow.IntAddr("response_time", 200),
+    )
 
-    if two != three {
-        trace.RecordFailure(mathIsHard, "error comparing parameters")
+    // Simulate an error and record it
+    err := someOperation()
+    if err != nil {
+        trace.RecordFailure(err, "failed to complete operation")
     }
 }
 ```

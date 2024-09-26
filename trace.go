@@ -143,10 +143,11 @@ func (t *Trace) Start(name string) *Trace {
 //	    attribute.Bool("success", true),
 //	)
 //
-// This unified approach simplifies the API by eliminating the need for separate methods
-// to handle single vs. multiple attributes.
-func (t *Trace) AddAttribute(attrs ...attribute.KeyValue) *Trace {
-	t.attrs = append(t.attrs, attrs...)
+// AddAttribute accepts one or more custom TraceFlow attributes and appends them to the trace.
+func (t *Trace) AddAttribute(attrs ...Attribute) *Trace {
+	for _, attr := range attrs {
+		t.attrs = append(t.attrs, attr.otelAttr)
+	}
 
 	return t
 }
@@ -203,7 +204,7 @@ func (t *Trace) AddAttributeIf(cond bool, key string, value interface{}) *Trace 
 	return t
 }
 
-// AddLink adds a link to another span within the current span.
+// AddLink adds a link to another span within the current traceflow span.
 // Span links are used to connect spans that are related but do not have a direct
 // parent-child relationship. This is useful when spans from different traces or
 // parts of the same trace are logically related and should be connected.
@@ -215,6 +216,7 @@ func (t *Trace) AddAttributeIf(cond bool, key string, value interface{}) *Trace 
 // Example usage:
 //
 //	// Link another span's context to the current span
+//	otherSpanContext := traceflow.NewSpanContext(externalOtelSpanContext)
 //	trace.AddLink(otherSpanContext)
 //
 // This method is particularly useful in scenarios like batch processing, where a
@@ -222,11 +224,13 @@ func (t *Trace) AddAttributeIf(cond bool, key string, value interface{}) *Trace 
 // do not have direct hierarchical relationships.
 //
 // Notes:
-//   - The linked span is represented by its SpanContext, which carries the metadata
-//     for that span (trace ID, span ID, etc.).
+//   - The linked span is represented by its traceflow.SpanContext, which wraps the
+//     OpenTelemetry span context (trace.SpanContext).
 //   - This method returns the Trace object, allowing chaining of additional methods.
-func (t *Trace) AddLink(spanContext trace.SpanContext) *Trace {
-	link := trace.Link{SpanContext: spanContext}
+//   - Users interact with traceflow's custom SpanContext type to avoid the need to directly
+//     import or use OpenTelemetry types, making tracing integration easier.
+func (t *Trace) AddLink(spanContext SpanContext) *Trace {
+	link := trace.Link{SpanContext: spanContext.otelSpanContext}
 	t.links = append(t.links, link)
 
 	return t
