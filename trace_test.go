@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -51,6 +52,18 @@ func TestAddAttributes(t *testing.T) {
 
 	if len(trace.attrs) != 3 {
 		t.Errorf("Expected 3 attributes, got %d", len(trace.attrs))
+	}
+}
+
+// TestStartEndSpan tests starting and ending a span.
+func TestStartEndSpan(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	defer trace.Start("test-span").End()
+
+	if trace.span == nil {
+		t.Error("Span should not be nil")
 	}
 }
 
@@ -105,6 +118,111 @@ func TestGetTraceID(t *testing.T) {
 	if traceID := trace.GetTraceID(); traceID == "" {
 		t.Error("Expected valid Trace ID after span is started")
 	}
+}
 
-	fmt.Printf("Trace: %+v\n", trace.GetTraceID())
+// TestAddAttributeIf tests conditionally adding attributes to a trace.
+func TestAddAttributeIf(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	// Add attribute if true
+	trace.AddAttributeIf(true, "key1", "value1")
+	if len(trace.attrs) != 1 {
+		t.Errorf("Expected 1 attribute, got %d", len(trace.attrs))
+	}
+
+	// Do not add attribute if false
+	trace.AddAttributeIf(false, "key2", "value2")
+	if len(trace.attrs) != 1 {
+		t.Errorf("Expected 1 attribute, got %d", len(trace.attrs))
+	}
+}
+
+// TestSetStatus tests setting the status of a span.
+func TestSetStatus(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	defer trace.Start("set-status").End()
+
+	// Set status to codes.Error
+	trace.SetStatus(codes.Error, "operation failed")
+
+	// Verify the span status is codes.Error
+	if trace.span == nil {
+		t.Error("Span should not be nil")
+	}
+	// Since OpenTelemetry doesn't expose status directly, we can't verify it in a test,
+	// but the code won't raise an error if SetStatus works correctly.
+}
+
+// TestEnd tests ending the span.
+func TestEnd(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	trace.Start("test-end")
+
+	// End the span
+	trace.End()
+
+	// The span should not be nil, but it's hard to check if it was ended since OpenTelemetry
+	// doesn't expose internal span state in tests.
+	if trace.span == nil {
+		t.Error("Span should not be nil after starting")
+	}
+}
+
+// TestRecordFailure tests recording a failure in the trace.
+func TestRecordFailure(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	defer trace.Start("record-failure").End()
+
+	// Call RecordFailure (no return value)
+	trace.RecordFailure(fmt.Errorf("test error"), "custom failure message")
+
+	// Since we can't directly inspect the span's status in a test, we are ensuring no panic or failure.
+	if trace.span == nil {
+		t.Error("Span should not be nil after RecordFailure is called")
+	}
+}
+
+// TestAddLink tests adding a link to a trace's span.
+func TestAddLink(t *testing.T) {
+	ctx := context.Background()
+	trace := New(ctx, "test-service")
+
+	// Create a new span to generate a valid SpanContext
+	_, span := trace.tracer.Start(ctx, "linked-span")
+	spanContext := span.SpanContext()
+
+	// Add the link to the trace
+	trace.AddLink(spanContext)
+
+	if len(trace.links) != 1 {
+		t.Errorf("Expected 1 link, got %d", len(trace.links))
+	}
+}
+
+// TestGetParentID tests getting the parent span ID of a trace and ensures parent-child relationships.
+func TestGetParentID(t *testing.T) {
+	ctx := context.Background()
+	trace1 := New(ctx, "test-service")
+	defer trace1.Start("parent-span").End()
+
+	// Initially, there is no parent span ID
+	if parentID := trace1.GetParentID(); parentID != "" {
+		t.Errorf("Expected no parent ID, got %s", parentID)
+	}
+
+	// Create a second trace using the context of the first trace
+	trace2 := New(trace1.GetContext(), "child-service")
+	defer trace2.Start("child-span").End()
+
+	// Now, trace2 should have trace1's span as its parent
+	if parentID := trace2.GetParentID(); parentID == "" {
+		t.Error("Expected valid parent ID in trace2, but got empty string")
+	}
 }

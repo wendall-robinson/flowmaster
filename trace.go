@@ -1,4 +1,4 @@
-// Package gotraceit provides a simple wrapper around OpenTelemetry to make it easier to create and manage traces.
+// Package traceflow provides a simple wrapper around OpenTelemetry to make it easier to create and manage traces.
 package traceflow
 
 import (
@@ -26,10 +26,29 @@ type Trace struct {
 }
 
 // New creates a new Trace object using the specified tracer from the OpenTelemetry provider.
-// If context is nil, as a valid context is created for the trace. This context is used for
-// trace propagation and management.
-// New creates a new trace object and captures the parent span ID if available.
-func New(ctx context.Context, spanName string) *Trace {
+// If context is nil, a valid context is created for the trace. This context is used for
+// trace propagation and management. Users can pass variadic options to customize the trace,
+// including automatically adding system-related attributes, custom attributes, or any other
+// predefined behaviors.
+//
+// Example usage:
+//
+//	// Create a new Trace with default settings
+//	trace := traceflow.New(ctx, "my-service")
+//
+//	// Create a new Trace with system information
+//	trace := traceflow.New(ctx, "my-service", traceflow.WithSystemInfo())
+//
+//	// Create a new Trace with custom attributes
+//	trace := traceflow.New(ctx, "my-service", traceflow.WithAttributes(
+//	    attribute.String("user_id", "123"),
+//	    attribute.Int("request_count", 5),
+//	))
+//
+// Notes:
+// - The options allow flexibility in configuring the Trace object during initialization.
+// - You can create multiple options to fit various use cases and simplify tracing setup.
+func New(ctx context.Context, spanName string, opts ...Option) *Trace {
 	var (
 		traceCtx     context.Context
 		parentSpanID string
@@ -44,18 +63,46 @@ func New(ctx context.Context, spanName string) *Trace {
 		}
 	}
 
-	return &Trace{
+	// Create the Trace object
+	t := &Trace{
 		ctx:          traceCtx,
 		service:      spanName,
 		tracer:       otel.GetTracerProvider().Tracer(spanName),
 		parentSpanID: parentSpanID,
 		attrs:        []attribute.KeyValue{},
 		options:      []trace.SpanStartOption{},
+		spanKind:     &SpanKind{option: trace.WithSpanKind(trace.SpanKindInternal)},
 	}
+
+	// Apply variadic options
+	for _, opt := range opts {
+		opt(t)
+	}
+
+	return t
 }
 
-// Start creates a new span within the existing trace with and a name
+// Start creates a new span within the existing trace using the provided name.
+// It includes any attributes, links, and options that have been set on the trace.
+// After the span is created, attributes, links, and options are cleared to avoid
+// accidental reuse in future spans.
+//
+// If a span kind (e.g., server, client) has been set, it will also be applied to
+// the span during creation.
+//
+// Attributes and links can be added before calling this method, and they will be
+// automatically included in the span.
+//
+// Example usage:
+//
+//	trace := traceflow.New(ctx, "my-service")
+//	defer trace.Start("operation_name").End()
+//
+// Notes:
+// - This method formats the operation name as "<service>.<name>".
+// - Once a span is started, it must be ended using the End method.
 func (t *Trace) Start(name string) *Trace {
+	// Add any attributes and links to the span options
 	if len(t.attrs) > 0 {
 		t.options = append(t.options, trace.WithAttributes(t.attrs...))
 	}
@@ -64,8 +111,16 @@ func (t *Trace) Start(name string) *Trace {
 		t.options = append(t.options, trace.WithLinks(t.links...))
 	}
 
+	t.options = append(t.options, t.spanKind.option)
+
+	// Create the span with a formatted operation name
 	operation := fmt.Sprintf("%s.%s", t.service, name)
 	t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
+
+	// Clear attributes and links after the span is started to avoid re-use
+	t.attrs = nil
+	t.links = nil
+	t.options = nil
 
 	return t
 }
@@ -123,26 +178,27 @@ func (t *Trace) AddAttribute(attrs ...attribute.KeyValue) *Trace {
 //
 // If the condition is false, no attribute is added, and the trace remains unchanged.
 func (t *Trace) AddAttributeIf(cond bool, key string, value interface{}) *Trace {
-	if cond {
-		var attr attribute.KeyValue
-
-		switch v := value.(type) {
-		case string:
-			attr = attribute.String(key, v)
-		case int, int32, int64:
-			attr = attribute.Int64(key, reflect.ValueOf(v).Int())
-		case uint, uint32, uint64:
-			attr = attribute.Int64(key, int64(reflect.ValueOf(v).Uint()))
-		case float32, float64:
-			attr = attribute.Float64(key, reflect.ValueOf(v).Float())
-		case bool:
-			attr = attribute.Bool(key, v)
-		default:
-			return t
-		}
-
-		t.attrs = append(t.attrs, attr)
+	if !cond {
+		return t
 	}
+
+	var attr attribute.KeyValue
+	switch v := value.(type) {
+	case string:
+		attr = attribute.String(key, v)
+	case int, int32, int64:
+		attr = attribute.Int64(key, reflect.ValueOf(v).Int())
+	case uint, uint32, uint64:
+		attr = attribute.Int64(key, int64(reflect.ValueOf(v).Uint()))
+	case float32, float64:
+		attr = attribute.Float64(key, reflect.ValueOf(v).Float())
+	case bool:
+		attr = attribute.Bool(key, v)
+	default:
+		return t
+	}
+
+	t.attrs = append(t.attrs, attr)
 
 	return t
 }
@@ -212,7 +268,7 @@ func (t *Trace) SetStatus(code codes.Code, message string) {
 // process of marking successful spans. It is particularly useful when you want to
 // standardize how success is recorded in your traces.
 func (t *Trace) SetSuccess(message string) {
-	t.span.SetStatus(codes.Ok, message)
+	t.SetStatus(codes.Ok, message)
 }
 
 // RecordFailure records an error to the current span and marks the span's status as Error

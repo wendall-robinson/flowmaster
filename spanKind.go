@@ -4,7 +4,8 @@ import "go.opentelemetry.io/otel/trace"
 
 // SpanKind allows fluent setting of the span kind.
 type SpanKind struct {
-	trace *Trace
+	trace  *Trace
+	option trace.SpanStartOption
 }
 
 // SpanKind returns a SpanKind object that allows the caller to set the kind of the span.
@@ -36,25 +37,25 @@ func (t *Trace) SpanKind() *SpanKind {
 }
 
 // Server sets the span kind to server
-func (sk *SpanKind) Server() *Trace {
-	sk.trace.options = append(sk.trace.options, trace.WithSpanKind(trace.SpanKindServer))
-	return sk.trace
+func (s *SpanKind) Server() *Trace {
+	s.option = trace.WithSpanKind(trace.SpanKindServer)
+	return s.trace
 }
 
 // Client sets the span kind to client
-func (sk *SpanKind) Client() *Trace {
-	sk.trace.options = append(sk.trace.options, trace.WithSpanKind(trace.SpanKindClient))
-	return sk.trace
+func (s *SpanKind) Client() *Trace {
+	s.option = trace.WithSpanKind(trace.SpanKindClient)
+	return s.trace
 }
 
 // Producer sets the span kind to producer
-func (sk *SpanKind) Producer() *Trace {
-	sk.trace.options = append(sk.trace.options, trace.WithSpanKind(trace.SpanKindProducer))
-	return sk.trace
+func (s *SpanKind) Producer() *Trace {
+	s.option = trace.WithSpanKind(trace.SpanKindProducer)
+	return s.trace
 }
 
 // Consumer sets the span kind to consumer
-func (sk *SpanKind) Consumer() *Trace {
-	sk.trace.options = append(sk.trace.options, trace.WithSpanKind(trace.SpanKindConsumer))
-	return sk.trace
+func (s *SpanKind) Consumer() *Trace {
+	s.option = trace.WithSpanKind(trace.SpanKindConsumer)
+	return s.trace
 }
