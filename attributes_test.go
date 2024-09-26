@@ -10,7 +10,7 @@ import (
 
 // TestStringAttr tests the creation of a string OTEL attribute.
 func TestStringAttr(t *testing.T) {
-	attr := StringAttr("key", "value")
+	attr := AddString("key", "value")
 	expected := attribute.String("key", "value")
 
 	if attr.otelAttr != expected {
@@ -20,7 +20,7 @@ func TestStringAttr(t *testing.T) {
 
 // TestStringSliceAttr tests the creation of a string slice OTEL attribute.
 func TestStringSliceAttr(t *testing.T) {
-	attr := StringSliceAttr("key", []string{"value1", "value2"})
+	attr := AddStringSlice("key", []string{"value1", "value2"})
 	expected := attribute.StringSlice("key", []string{"value1", "value2"})
 
 	if attr.otelAttr != expected {
@@ -30,7 +30,7 @@ func TestStringSliceAttr(t *testing.T) {
 
 // TestIntAttr tests the creation of an int OTEL attribute.
 func TestIntAttr(t *testing.T) {
-	attr := IntAttr("key", 123)
+	attr := AddInt("key", 123)
 	expected := attribute.Int("key", 123)
 
 	if attr.otelAttr != expected {
@@ -40,7 +40,7 @@ func TestIntAttr(t *testing.T) {
 
 // TestIntSliceAttr tests the creation of an int slice OTEL attribute.
 func TestIntSliceAttr(t *testing.T) {
-	attr := IntSliceAttr("key", []int{1, 2, 3})
+	attr := AddIntSlice("key", []int{1, 2, 3})
 	expected := attribute.IntSlice("key", []int{1, 2, 3})
 
 	if attr.otelAttr != expected {
@@ -50,7 +50,7 @@ func TestIntSliceAttr(t *testing.T) {
 
 // TestFloatAttr tests the creation of a float64 OTEL attribute.
 func TestFloatAttr(t *testing.T) {
-	attr := FloatAttr("key", 1.23)
+	attr := AddFloat("key", 1.23)
 	expected := attribute.Float64("key", 1.23)
 
 	if attr.otelAttr != expected {
@@ -60,7 +60,7 @@ func TestFloatAttr(t *testing.T) {
 
 // TestFloatSliceAttr tests the creation of a float64 slice OTEL attribute.
 func TestFloatSliceAttr(t *testing.T) {
-	attr := FloatSliceAttr("key", []float64{1.1, 2.2, 3.3})
+	attr := AddFloatSlice("key", []float64{1.1, 2.2, 3.3})
 	expected := attribute.Float64Slice("key", []float64{1.1, 2.2, 3.3})
 
 	if attr.otelAttr != expected {
@@ -70,7 +70,7 @@ func TestFloatSliceAttr(t *testing.T) {
 
 // TestBoolAttr tests the creation of a bool OTEL attribute.
 func TestBoolAttr(t *testing.T) {
-	attr := BoolAttr("key", true)
+	attr := AddBool("key", true)
 	expected := attribute.Bool("key", true)
 
 	if attr.otelAttr != expected {
@@ -80,7 +80,7 @@ func TestBoolAttr(t *testing.T) {
 
 // TestBoolSliceAttr tests the creation of a bool slice OTEL attribute.
 func TestBoolSliceAttr(t *testing.T) {
-	attr := BoolSliceAttr("key", []bool{true, false, true})
+	attr := AddBoolSlice("key", []bool{true, false, true})
 	expected := attribute.BoolSlice("key", []bool{true, false, true})
 
 	if attr.otelAttr != expected {

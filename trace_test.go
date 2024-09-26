@@ -47,9 +47,9 @@ func TestAddAttributes(t *testing.T) {
 	trace := New(ctx, "test-service")
 
 	trace.AddAttribute(
-		StringAttr("key1", "value1"),
-		StringAttr("key2", "value2"),
-		IntAttr("key3", 3),
+		AddString("key1", "value1"),
+		AddString("key2", "value2"),
+		AddInt("key3", 3),
 	)
 
 	if len(trace.attrs) != 3 {
@@ -257,8 +257,8 @@ func TestWithSystemInfo(t *testing.T) {
 // TestWithAttributes tests that custom attributes are added via WithAttributes.
 func TestWithAttributes(t *testing.T) {
 	customAttrs := []Attribute{
-		StringAttr("custom.key1", "value1"),
-		IntAttr("custom.key2", 42),
+		AddString("custom.key1", "value1"),
+		AddInt("custom.key2", 42),
 	}
 
 	ctx := context.Background()

@@ -55,8 +55,8 @@ func main() {
 
     // Add custom attributes
     trace.AddAttribute(
-        traceflow.StringAddr("user_id", "12345"),
-        traceflow.IntAddr("response_time", 200),
+        traceflow.AddString("user_id", "12345"),
+        traceflow.AddInt("response_time", 200),
     )
 
     // Simulate an error and record it

@@ -11,57 +11,57 @@ type Attribute struct {
 	otelAttr attribute.KeyValue
 }
 
-// StringAttr creates a string OTEL attribute.
-func StringAttr(key, value string) Attribute {
+// AddString creates a string OTEL attribute.
+func AddString(key, value string) Attribute {
 	return Attribute{
 		otelAttr: attribute.String(key, value),
 	}
 }
 
-// StringSliceAttr creates a string slice OTEL attribute.
-func StringSliceAttr(key string, value []string) Attribute {
+// AddStringSlice creates a string slice OTEL attribute.
+func AddStringSlice(key string, value []string) Attribute {
 	return Attribute{
 		otelAttr: attribute.StringSlice(key, value),
 	}
 }
 
-// IntAttr creates an int OTEL attribute.
-func IntAttr(key string, value int) Attribute {
+// AddInt creates an int OTEL attribute.
+func AddInt(key string, value int) Attribute {
 	return Attribute{
 		otelAttr: attribute.Int(key, value),
 	}
 }
 
-// IntSliceAttr creates an int slice OTEL attribute.
-func IntSliceAttr(key string, value []int) Attribute {
+// AddIntSlice creates an int slice OTEL attribute.
+func AddIntSlice(key string, value []int) Attribute {
 	return Attribute{
 		otelAttr: attribute.IntSlice(key, value),
 	}
 }
 
-// FloatAttr creates an int64 OTEL attribute.
-func FloatAttr(key string, value float64) Attribute {
+// AddFloat creates an int64 OTEL attribute.
+func AddFloat(key string, value float64) Attribute {
 	return Attribute{
 		otelAttr: attribute.Float64(key, value),
 	}
 }
 
-// FloatSliceAttr creates a float64 slice OTEL attribute.
-func FloatSliceAttr(key string, value []float64) Attribute {
+// AddFloatSlice creates a float64 slice OTEL attribute.
+func AddFloatSlice(key string, value []float64) Attribute {
 	return Attribute{
 		otelAttr: attribute.Float64Slice(key, value),
 	}
 }
 
-// BoolAttr creates a bool OTEL attribute.
-func BoolAttr(key string, value bool) Attribute {
+// AddBool creates a bool OTEL attribute.
+func AddBool(key string, value bool) Attribute {
 	return Attribute{
 		otelAttr: attribute.Bool(key, value),
 	}
 }
 
-// BoolSliceAttr creates a bool slice OTEL attribute.
-func BoolSliceAttr(key string, value []bool) Attribute {
+// AddBoolSlice creates a bool slice OTEL attribute.
+func AddBoolSlice(key string, value []bool) Attribute {
 	return Attribute{
 		otelAttr: attribute.BoolSlice(key, value),
 	}
