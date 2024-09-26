@@ -13,7 +13,7 @@ type Option func(*Trace)
 // WithSystemInfo adds system-related attributes: CPU, Memory, Disk
 func WithSystemInfo() Option {
 	return func(t *Trace) {
-		t.AddCpuInfo()
+		t.AddCPUInfo()
 		t.AddMemoryInfo()
 		t.AddDiskInfo()
 	}
@@ -21,7 +21,7 @@ func WithSystemInfo() Option {
 
 // WithAttributes allows users to provide custom attributes to be added
 // during the Trace object initialization.
-func WithCustomAttributes(attrs ...attribute.KeyValue) Option {
+func WithAttributes(attrs ...attribute.KeyValue) Option {
 	return func(t *Trace) {
 		t.attrs = append(t.attrs, attrs...)
 	}
@@ -36,7 +36,7 @@ func WithConcurrencyInfo() Option {
 	}
 }
 
-// WithEnVaars retrieves environment variables specified in the keys slice and adds them
+// WithEnVars retrieves environment variables specified in the keys slice and adds them
 // as attributes to the Trace. If an environment variable is not set or is empty, a warning is logged,
 // and that attribute is not added.
 //

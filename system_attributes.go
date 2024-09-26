@@ -19,16 +19,17 @@ func (t *Trace) AddSystemInfo(hostname, ipAddress, environment string) *Trace {
 		attribute.String("system.ip_address", ipAddress),
 		attribute.String("system.environment", environment),
 	)
+
 	return t
 }
 
-// AddCpuInfo adds CPU count and CPU architecture attributes to the trace.
+// AddCPUInfo adds CPU count and CPU architecture attributes to the trace.
 // This information is gathered automatically using Go's runtime package.
 //
 // Example usage:
 //
 //	trace.AddCpuInfo()
-func (t *Trace) AddCpuInfo() *Trace {
+func (t *Trace) AddCPUInfo() *Trace {
 	cpuCount := runtime.NumCPU()
 	cpuArchitecture := runtime.GOARCH
 
@@ -58,8 +59,8 @@ func (t *Trace) AddCpuInfo() *Trace {
 // - The memory statistics are collected automatically, and no manual input is required.
 func (t *Trace) AddMemoryInfo() *Trace {
 	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
 
+	runtime.ReadMemStats(&memStats)
 	t.attrs = append(t.attrs,
 		attribute.Int64("memory.total_alloc", safeUint64ToInt64(memStats.TotalAlloc)),
 		attribute.Int64("memory.sys", safeUint64ToInt64(memStats.Sys)),
@@ -88,9 +89,9 @@ func (t *Trace) AddMemoryInfo() *Trace {
 //     required for other operating systems.
 func (t *Trace) AddDiskInfo() *Trace {
 	var stat syscall.Statfs_t
+
 	err := syscall.Statfs("/", &stat)
 	if err != nil {
-		// Handle error appropriately
 		return t
 	}
 
@@ -120,7 +121,8 @@ func (t *Trace) AddDiskInfo() *Trace {
 // Notes:
 // - If the command cannot be determined, it defaults to "unknown".
 func (t *Trace) AddProcessInfo() *Trace {
-	processID := os.Getpid()                  // Gets the current process ID
+	processID := os.Getpid() // Gets the current process ID
+
 	command, err := exec.LookPath(os.Args[0]) // Gets the command (path) being executed
 	if err != nil {
 		command = "unknown"
@@ -151,6 +153,7 @@ func (t *Trace) AddProcessInfo() *Trace {
 func (t *Trace) AddContainerInfo() *Trace {
 	// Get the container ID from the cgroup (works in Docker/Kubernetes)
 	containerID := "unknown"
+
 	if data, err := os.ReadFile("/proc/self/cgroup"); err == nil {
 		// Extract the container ID from the cgroup file
 		lines := strings.Split(string(data), "\n")
@@ -185,6 +188,7 @@ func (t *Trace) AddKubernetesInfo(podName, namespace string) *Trace {
 		attribute.String("kubernetes.pod_name", podName),
 		attribute.String("kubernetes.namespace", namespace),
 	)
+
 	return t
 }
 
@@ -194,6 +198,7 @@ func (t *Trace) AddNetworkInfo(protocol string, latency time.Duration) *Trace {
 		attribute.String("network.protocol", protocol),
 		attribute.Int64("network.latency_ms", latency.Milliseconds()),
 	)
+
 	return t
 }
 
@@ -214,5 +219,6 @@ func safeUint64ToInt64(u uint64) int64 {
 	if u > math.MaxInt64 {
 		return math.MaxInt64 // Handle overflow case (use max int64 value)
 	}
+
 	return int64(u)
 }

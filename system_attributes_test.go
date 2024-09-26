@@ -29,7 +29,7 @@ func TestAddCpuInfo(t *testing.T) {
 	ctx := context.TODO()
 	trace := New(ctx, "test-service")
 
-	trace.AddCpuInfo()
+	trace.AddCPUInfo()
 
 	assert.Len(t, trace.attrs, 2)
 	assert.Equal(t, attribute.Int("cpu.count", runtime.NumCPU()), trace.attrs[0])

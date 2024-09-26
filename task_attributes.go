@@ -12,6 +12,7 @@ func (t *Trace) AddEvent(eventName string, timestamp time.Time) *Trace {
 		attribute.String("event.name", eventName),
 		attribute.String("event.timestamp", timestamp.String()),
 	)
+
 	return t
 }
 
@@ -22,6 +23,7 @@ func (t *Trace) AddTaskInfo(taskID, taskName string, retries int) *Trace {
 		attribute.String("task.name", taskName),
 		attribute.Int("task.retries", retries),
 	)
+
 	return t
 }
 
@@ -31,6 +33,7 @@ func (t *Trace) AddUser(userID, username string) *Trace {
 		attribute.String("user.id", userID),
 		attribute.String("user.username", username),
 	)
+
 	return t
 }
 
@@ -40,5 +43,6 @@ func (t *Trace) AddCustomMetric(metricName string, value float64) *Trace {
 		attribute.String("metric.name", metricName),
 		attribute.Float64("metric.value", value),
 	)
+
 	return t
 }

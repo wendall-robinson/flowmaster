@@ -16,6 +16,7 @@ func (t *Trace) AddHTTPRequest(req *http.Request) *Trace {
 		attribute.String("http.user_agent", req.UserAgent()),
 		attribute.String("http.client_ip", req.RemoteAddr),
 	)
+
 	return t
 }
 
@@ -25,6 +26,7 @@ func (t *Trace) AddHTTPResponse(statusCode int, contentLength int64) *Trace {
 		attribute.Int("http.status_code", statusCode),
 		attribute.Int64("http.content_length", contentLength),
 	)
+
 	return t
 }
 
@@ -35,6 +37,7 @@ func (t *Trace) AddHTTPHeaders(headers http.Header) *Trace {
 			t.attrs = append(t.attrs, attribute.String("http.header."+key, value))
 		}
 	}
+
 	return t
 }
 

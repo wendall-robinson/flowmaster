@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// traceflow is a struct that holds the context, tracer, span, and attributes for a trace
+// Trace is a struct that holds the context, tracer, span, and attributes for a trace
 type Trace struct {
 	ctx          context.Context
 	service      string

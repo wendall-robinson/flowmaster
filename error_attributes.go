@@ -14,6 +14,7 @@ func (t *Trace) AddException(err error, stackTrace string) *Trace {
 		attribute.String("exception.message", err.Error()),
 		attribute.String("exception.stacktrace", stackTrace),
 	)
+
 	return t
 }
 
@@ -23,6 +24,7 @@ func (t *Trace) AddError(err error) *Trace {
 		attribute.String("error.type", reflect.TypeOf(err).String()),
 		attribute.String("error.message", err.Error()),
 	)
+
 	return t
 }
 
