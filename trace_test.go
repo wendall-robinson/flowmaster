@@ -211,25 +211,28 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-// TestGetParentID tests getting the parent span ID of a trace and ensures parent-child relationships.
+// TestGetParentID tests getting the parent span ID of a trace and ensures parent-child relationships.func TestGetParentID(t *testing.T) {
 func TestGetParentID(t *testing.T) {
 	ctx := context.Background()
-	trace1 := New(ctx, "test-service")
-	defer trace1.Start("parent-span").End()
+	trace1 := New(ctx, "test-service").Start("parent-span")
 
-	// Initially, there is no parent span ID
+	// Ensure trace1 does not have a parent span ID
 	if parentID := trace1.GetParentID(); parentID != "" {
-		t.Errorf("Expected no parent ID, got %s", parentID)
+		t.Errorf("Expected no parent ID for trace1, got %s", parentID)
 	}
 
-	// Create a second trace using the context of the first trace
-	trace2 := New(trace1.GetContext(), "child-service")
-	defer trace2.Start("child-span").End()
+	// Create trace2 using the context of trace1
+	// trace2 := New(trace1.GetContext(), "child-service").Start("child-span")
+	trace2 := New(trace1.GetContext(), "child-service").Start("child-span")
 
-	// Now, trace2 should have trace1's span as its parent
+	// Trace2 should have trace1's span as its parent
 	if parentID := trace2.GetParentID(); parentID == "" {
-		t.Error("Expected valid parent ID in trace2, but got empty string")
+		t.Error("Expected valid parent ID for trace2, but got empty string")
 	}
+
+	// End both spans
+	trace2.End()
+	trace1.End()
 }
 
 // TestWithSystemInfo tests that system info (CPU, memory, disk) attributes are added.

@@ -31,6 +31,10 @@ type Trace struct {
 // including automatically adding system-related attributes, custom attributes, or any other
 // predefined behaviors.
 //
+// New also automatically propagates the trace context from
+// the provided context. This ensures that the trace is linked to any existing parent trace.
+// If no trace exists in the provided context, it starts a fresh trace.
+//
 // Example usage:
 //
 //	// Create a new Trace with default settings
@@ -49,18 +53,18 @@ type Trace struct {
 // - The options allow flexibility in configuring the Trace object during initialization.
 // - You can create multiple options to fit various use cases and simplify tracing setup.
 func New(ctx context.Context, spanName string, opts ...Option) *Trace {
-	var (
-		traceCtx     context.Context
-		parentSpanID string
-	)
+	var traceCtx context.Context
 
 	if ctx == nil {
 		traceCtx = context.Background()
 	} else {
 		traceCtx = ctx
-		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
-			parentSpanID = span.SpanContext().SpanID().String()
-		}
+	}
+
+	var parentSpanID string
+	// If there's an existing span in the context, preserve its parent SpanContext
+	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+		parentSpanID = span.SpanContext().SpanID().String()
 	}
 
 	// Create the Trace object
@@ -82,6 +86,36 @@ func New(ctx context.Context, spanName string, opts ...Option) *Trace {
 	return t
 }
 
+// NewWithoutPropagation creates a new Trace object without propagating the trace context
+// from the provided context. This treats the current trace as a parent, but does not copy
+// the context. Use this method when you want the new trace to start independently.
+//
+// Example usage:
+//
+//	// Create a new trace without propagating the existing context
+//	trace := traceflow.NewWithoutPropagation(ctx, "my-service")
+//
+//	// The new trace will not be linked to the parent trace.
+func NewWithoutPropagation(ctx context.Context, spanName string, opts ...Option) *Trace {
+	traceCtx := context.Background()
+
+	t := &Trace{
+		ctx:      traceCtx,
+		service:  spanName,
+		tracer:   otel.GetTracerProvider().Tracer(spanName),
+		attrs:    []attribute.KeyValue{},
+		options:  []trace.SpanStartOption{},
+		spanKind: &SpanKind{},
+	}
+
+	// Apply variadic options (if any)
+	for _, opt := range opts {
+		opt(t)
+	}
+
+	return t
+}
+
 // Start creates a new span within the existing trace using the provided name.
 // It includes any attributes, links, and options that have been set on the trace.
 // After the span is created, attributes, links, and options are cleared to avoid
@@ -89,9 +123,6 @@ func New(ctx context.Context, spanName string, opts ...Option) *Trace {
 //
 // If a span kind (e.g., server, client) has been set, it will also be applied to
 // the span during creation.
-//
-// Attributes and links can be added before calling this method, and they will be
-// automatically included in the span.
 //
 // Example usage:
 //
@@ -102,20 +133,28 @@ func New(ctx context.Context, spanName string, opts ...Option) *Trace {
 // - This method formats the operation name as "<service>.<name>".
 // - Once a span is started, it must be ended using the End method.
 func (t *Trace) Start(name string) *Trace {
-	// Add any attributes and links to the span options
-	if len(t.attrs) > 0 {
-		t.options = append(t.options, trace.WithAttributes(t.attrs...))
+	// Ensure a valid tracer exists
+	if t.tracer == nil {
+		t.tracer = otel.GetTracerProvider().Tracer(t.service)
 	}
 
-	if len(t.links) > 0 {
-		t.options = append(t.options, trace.WithLinks(t.links...))
+	// Ensure the context is valid and has a valid span, otherwise, start a new one
+	if span := trace.SpanFromContext(t.ctx); !span.SpanContext().IsValid() {
+		t.ctx, t.span = t.tracer.Start(t.ctx, t.service)
+	} else {
+		if len(t.attrs) > 0 {
+			t.options = append(t.options, trace.WithAttributes(t.attrs...))
+		}
+
+		if len(t.links) > 0 {
+			t.options = append(t.options, trace.WithLinks(t.links...))
+		}
+
+		t.options = append(t.options, t.spanKind.option)
+
+		operation := fmt.Sprintf("%s.%s", t.service, name)
+		t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
 	}
-
-	t.options = append(t.options, t.spanKind.option)
-
-	// Create the span with a formatted operation name
-	operation := fmt.Sprintf("%s.%s", t.service, name)
-	t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
 
 	// Clear attributes and links after the span is started to avoid re-use
 	t.attrs = nil

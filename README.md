@@ -72,18 +72,29 @@ func main() {
 * **Adding Attributes:** trace.AddAttribute to capture custom key-value pairs.
 * **Error Handling:** Using trace.RecordFailure to record errors and failures within the trace.
 
-### Adding Attributes and Links
-You can add attributes and links to spans easily:
+## Default Context Propagation
 
-```golang
-func operation(ctx context.Context) {
-    trace := traceflow.NewTrace(ctx, "example-service")
+By default, when you create a new trace using the `New()` method, the trace context is automatically copied from the provided context (if it exists). This ensures that the trace is linked to any existing parent trace, making it easier to maintain the trace chain across distributed services.
 
-    trace.AddKeyValue("user_id", "12345")
-    trace.AddLink(otherSpanContext) // Assuming otherSpanContext is available
+**Example usage:**
+```go
+// Incoming request with an existing trace context
+ctx := r.Context() // from an HTTP request
 
-    defer trace.Start("operation").End()
-}
+// Create a new trace, linked to the parent trace (if it exists)
+trace := traceflow.New(ctx, "my-service")
+trace.Start("operation").End()
+```
+
+## Starting a Fresh Trace Without Context Propagation
+
+If you want to start a fresh trace and not propagate the existing trace context, use the NewWithoutPropagation() method. This allows you to create an independent trace.
+
+**Example usage:**
+```go
+// Start a new trace without copying the existing trace context
+trace := traceflow.NewWithoutPropagation(ctx, "my-service")
+trace.Start("operation").End()
 ```
 ## Advanced Features
 ### Advanced Features: System Information
