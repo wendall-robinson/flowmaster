@@ -8,26 +8,21 @@ import (
 	"runtime"
 	"testing"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
 )
 
-// init initializes the OpenTelemetry provider and sets the global propagator.
-func init() {
-	tp := trace.NewTracerProvider(
-		trace.WithSampler(trace.AlwaysSample()),
-	)
+// // init initializes the OpenTelemetry provider and sets the global propagator.
+// func init() {
+// 	ctx := context.Background()
 
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+// 	_, shutdown, err := Init(ctx, "test-service", WithSilentLogger())
+// 	if err != nil {
+// 		panic("Failed to initialize OpenTelemetry for tests: " + err.Error())
+// 	}
 
-	otel.SetTracerProvider(tp)
-}
+// 	defer shutdown(ctx)
+// }
 
 // TestNewTrace tests the creation of a new Trace instance.
 func TestNewTrace(t *testing.T) {
@@ -72,16 +67,24 @@ func TestStartEndSpan(t *testing.T) {
 // TestInjectHTTPContext tests the injection of HTTP context.
 func TestInjectHTTPContext(t *testing.T) {
 	ctx := context.Background()
+
+	// Initialize OpenTelemetry with a valid context
+	ctx, shutdown, err := Init(ctx, "test-service", WithSilentLogger())
+	if err != nil {
+		t.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+
+	defer shutdown(ctx)
+
 	trace := New(ctx, "test-service")
 
 	defer trace.Start("inject-http-context").End()
 
-	//nolint:noctx
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 	trace.InjectHTTPContext(req)
 
 	if _, exists := req.Header["Traceparent"]; !exists {
-		t.Error("Expected Traceparent header to be injected")
+		t.Errorf("Expected Traceparent header to be injected")
 	}
 }
 
@@ -105,7 +108,17 @@ func TestExtractHTTPContext(t *testing.T) {
 }
 
 func TestGetTraceID(t *testing.T) {
+	// Use the context from Init to ensure proper OpenTelemetry setup
 	ctx := context.Background()
+
+	ctx, shutdown, err := Init(ctx, "test-service", WithSilentLogger())
+	if err != nil {
+		t.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+
+	defer shutdown(ctx)
+
+	// Create a new trace using the initialized context
 	trace := New(ctx, "test-service")
 
 	// Initially, before the span is started, TraceID should be empty
@@ -213,7 +226,16 @@ func TestAddLink(t *testing.T) {
 
 // TestGetParentID tests getting the parent span ID of a trace and ensures parent-child relationships.func TestGetParentID(t *testing.T) {
 func TestGetParentID(t *testing.T) {
+	// Use the context from Init to ensure proper OpenTelemetry setup
 	ctx := context.Background()
+
+	ctx, shutdown, err := Init(ctx, "test-service", WithSilentLogger())
+	if err != nil {
+		t.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+
+	defer shutdown(ctx)
+
 	trace1 := New(ctx, "test-service").Start("parent-span")
 
 	// Ensure trace1 does not have a parent span ID
@@ -222,7 +244,6 @@ func TestGetParentID(t *testing.T) {
 	}
 
 	// Create trace2 using the context of trace1
-	// trace2 := New(trace1.GetContext(), "child-service").Start("child-span")
 	trace2 := New(trace1.GetContext(), "child-service").Start("child-span")
 
 	// Trace2 should have trace1's span as its parent

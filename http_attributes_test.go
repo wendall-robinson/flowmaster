@@ -8,6 +8,16 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+// // init initializes the OpenTelemetry provider and sets the global propagator.
+// func init() {
+// 	ctx := context.Background()
+// 	_, shutdown, err := Init(ctx, "test-service", WithLogger(silentLogger()))
+// 	if err != nil {
+// 		panic("Failed to initialize OpenTelemetry for tests: " + err.Error())
+// 	}
+// 	defer shutdown(ctx)
+// }
+
 // TestAddHTTPRequest tests that HTTP request details are correctly added as attributes.
 func TestAddHTTPRequest(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.com", nil)

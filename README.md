@@ -29,7 +29,6 @@ To install TraceFlow, use `go get`:
 ```bash
 go get github.com/wendall-robinson/traceflow
 ```
-
 ## Quick Start
 **Basic Usage Example**
 
@@ -46,6 +45,15 @@ import (
 
 func main() {
     ctx := context.Background()
+
+    // Initialize OpenTelemetry
+    ctx, shutdown, err := traceflow.Init(ctx, "my-service")
+    if err != nil {
+        log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+    }
+
+    // Make sure to defer the shutdown for proper cleanup
+    defer shutdown(ctx)
 
     // Create a new trace
     trace := traceflow.New(ctx, "example-service")
@@ -67,7 +75,7 @@ func main() {
 }
 ```
 ### Key Features Demonstrated:
-
+* **Initializing OpenTelemetry:** Using `traceflow.Init` to initialize OpenTelemetry with optional settings (such as a custom logger) and ensure proper tracing setup in your application.
 * **Creating and Starting a Trace:** traceflow.New and trace.Start.
 * **Adding Attributes:** trace.AddAttribute to capture custom key-value pairs.
 * **Error Handling:** Using trace.RecordFailure to record errors and failures within the trace.
@@ -86,7 +94,39 @@ trace := traceflow.New(ctx, "my-service")
 trace.Start("operation").End()
 ```
 
-## Starting a Fresh Trace Without Context Propagation
+## OpenTelemetry Initialization
+
+To make it easier for users to initialize OpenTelemetry tracing in their services, `traceflow` provides an `Init` function that sets up OpenTelemetry with default or custom options.
+
+**Basic Usage:**
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/yourusername/traceflow"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Initialize OpenTelemetry
+    ctx, shutdown, err := traceflow.Init(ctx, "my-service")
+    if err != nil {
+        log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+    }
+
+    // Make sure to defer the shutdown for proper cleanup
+    defer shutdown(ctx)
+
+    // Your application logic...
+}
+```
+
+## Advanced Features
+### Advanced Features: Starting a Fresh Trace Without Context Propagation
 
 If you want to start a fresh trace and not propagate the existing trace context, use the NewWithoutPropagation() method. This allows you to create an independent trace.
 
@@ -96,7 +136,6 @@ If you want to start a fresh trace and not propagate the existing trace context,
 trace := traceflow.NewWithoutPropagation(ctx, "my-service")
 trace.Start("operation").End()
 ```
-## Advanced Features
 ### Advanced Features: System Information
  * **Adding System Information:** Automatically add CPU, memory, and disk usage to your traces:
     ```go
