@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"go.opentelemetry.io/otel/propagation"
 
@@ -42,6 +43,7 @@ type TelemetryBuilder struct {
 	logger         *log.Logger
 	exporter       sdktrace.SpanExporter
 	filePath       string
+	batchTimeout   time.Duration
 }
 
 // Init initializes OpenTelemetry with optional tracing and metrics, and returns
@@ -62,7 +64,12 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 		builder.traceExporter, _ = stdouttrace.New(stdouttrace.WithPrettyPrint())
 	}
 
-	spanProcessor := sdktrace.NewBatchSpanProcessor(builder.traceExporter)
+	builder.logger.Printf("Trace Exporter Config: %+v", builder.traceExporter)
+
+	spanProcessor := sdktrace.NewBatchSpanProcessor(
+		builder.traceExporter,
+		sdktrace.WithBatchTimeout(builder.batchTimeout),
+	)
 
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -130,18 +137,17 @@ func WithMetrics() InitOption {
 }
 
 // WithOLTP sets the OLTP exporter to send traces to an OpenTelemetry collector.
-func WithOLTP() InitOption {
+func WithOLTP(target string) InitOption {
 	return func(tb *TelemetryBuilder) {
 		tb.logger.Println("Using OTLP exporter")
 
-		exp, err := otlptracegrpc.New(tb.ctx, otlptracegrpc.WithInsecure(), otlptracegrpc.WithEndpoint("localhost:4317"))
+		exp, err := otlptracegrpc.New(tb.ctx, otlptracegrpc.WithInsecure(), otlptracegrpc.WithEndpoint(target))
 		if err != nil {
 			tb.logger.Printf("Failed to create OLTP exporter: %v", err)
-
 			return
 		}
 
-		tb.exporter = exp
+		tb.traceExporter = exp
 	}
 }
 
@@ -169,8 +175,8 @@ func WithFileLogging(filePath string) InitOption {
 			return
 		}
 
-		// Set the exporter in the TelemetryBuilder
-		tb.exporter = exporter
+		// Set the traceExporter in the TelemetryBuilder
+		tb.traceExporter = exporter // Fixing this to use traceExporter
 	}
 }
 
@@ -187,5 +193,12 @@ func WithSilentLogger() InitOption {
 func WithLogger(logger *log.Logger) InitOption {
 	return func(tb *TelemetryBuilder) {
 		tb.logger = logger
+	}
+}
+
+// WithBatchTimeout allows users to specify a custom batch timeout for the BatchSpanProcessor.
+func WithBatchTimeout(timeout time.Duration) InitOption {
+	return func(tb *TelemetryBuilder) {
+		tb.batchTimeout = timeout
 	}
 }

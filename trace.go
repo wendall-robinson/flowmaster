@@ -138,25 +138,24 @@ func (t *Trace) Start(name string) *Trace {
 		t.tracer = otel.GetTracerProvider().Tracer(t.service)
 	}
 
-	// Ensure the context is valid and has a valid span, otherwise, start a new one
-	if span := trace.SpanFromContext(t.ctx); !span.SpanContext().IsValid() {
-		t.ctx, t.span = t.tracer.Start(t.ctx, t.service)
-	} else {
-		if len(t.attrs) > 0 {
-			t.options = append(t.options, trace.WithAttributes(t.attrs...))
-		}
-
-		if len(t.links) > 0 {
-			t.options = append(t.options, trace.WithLinks(t.links...))
-		}
-
-		t.options = append(t.options, t.spanKind.option)
-
-		operation := fmt.Sprintf("%s.%s", t.service, name)
-		t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
+	// Apply attributes if they exist
+	if len(t.attrs) > 0 {
+		t.options = append(t.options, trace.WithAttributes(t.attrs...))
 	}
 
-	// Clear attributes and links after the span is started to avoid re-use
+	// Apply links if they exist
+	if len(t.links) > 0 {
+		t.options = append(t.options, trace.WithLinks(t.links...))
+	}
+
+	// Apply span kind if it exists
+	t.options = append(t.options, t.spanKind.option)
+
+	// Start the span
+	operation := fmt.Sprintf("%s.%s", t.service, name)
+	t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
+
+	// Clear attributes, links, and options after starting the span to avoid re-use
 	t.attrs = nil
 	t.links = nil
 	t.options = nil

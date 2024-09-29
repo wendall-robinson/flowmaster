@@ -1,23 +1,14 @@
-# Use the official Golang image as a base
-FROM golang:1.22-alpine
+# Use a minimal base image
+FROM alpine:3.14
 
-# Set the working directory inside the container
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy the go.mod and go.sum files to the container
-COPY go.mod go.sum ./
+# Copy the pre-built Go binary into the container
+COPY main /app/main
 
-# Download the module dependencies
-RUN go mod download
+# Make sure the binary is executable
+RUN chmod +x /app/main
 
-# Copy the source code into the container
-COPY . .
-
-# Build the Go application
-RUN go build -o /app/traceapp .
-
-# Expose the service port (optional if your app listens on a specific port)
-EXPOSE 8080
-
-# Command to run the app
-CMD ["/app/traceapp"]
+# Command to run the binary
+CMD ["/app/main"]

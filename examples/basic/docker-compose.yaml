@@ -12,6 +12,7 @@ services:
       - "--config=/conf/otel-config.yaml"
     ports:
       - 4317:4317
+      - 55679:55679
       - 55681:55681
     volumes:
       - ./otel-config.yaml:/conf/otel-config.yaml
@@ -19,9 +20,9 @@ services:
     networks:
       - example
 
-  go-app:
+  app:
     build:
-      context: ./examples/basic
+      context: .
       dockerfile: Dockerfile
     depends_on:
       - otel

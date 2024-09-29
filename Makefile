@@ -31,6 +31,8 @@ vendor:
 	@go mod tidy
 
 basic-example-up:
+	cd examples/basic && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o main
+	@docker-compose -f examples/basic/docker-compose.yaml build
 	@docker-compose -f examples/basic/docker-compose.yaml up -d
 
 basic-example-down:
