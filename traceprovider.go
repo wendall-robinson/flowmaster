@@ -10,7 +10,9 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -34,36 +36,34 @@ func (n *noopSpanExporter) Shutdown(context.Context) error {
 
 // TelemetryBuilder holds configuration for OTEL setup
 type TelemetryBuilder struct {
-	ctx      context.Context
-	logger   *log.Logger
-	exporter sdktrace.SpanExporter
-	filePath string
+	ctx            context.Context
+	traceExporter  sdktrace.SpanExporter
+	metricExporter metric.Exporter
+	logger         *log.Logger
+	exporter       sdktrace.SpanExporter
+	filePath       string
 }
 
-// Init initializes OpenTelemetry with a custom context, service name, and returns
-// the initialized context and a shutdown function for cleanup.
+// Init initializes OpenTelemetry with optional tracing and metrics, and returns
+// the initialized context, a shutdown function, and any error encountered.
+// You can enable metrics by using the `WithMetrics` option.
 func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.Context, func(context.Context), error) {
-	// Create a default TelemetryBuilder
 	builder := &TelemetryBuilder{
 		ctx:    ctx,
-		logger: log.New(os.Stdout, "", log.LstdFlags), // Default logger writes to stdout
+		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
 
-	// Apply the options
 	for _, opt := range opts {
 		opt(builder)
 	}
 
-	// Set up the exporter based on configuration
-	if builder.exporter == nil {
-		// Default to stdout exporter if none is specified
-		builder.exporter, _ = stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if builder.traceExporter == nil {
+		// Default to stdout trace exporter if none is specified
+		builder.traceExporter, _ = stdouttrace.New(stdouttrace.WithPrettyPrint())
 	}
 
-	// Create SpanProcessor using the exporter
-	spanProcessor := sdktrace.NewBatchSpanProcessor(builder.exporter)
+	spanProcessor := sdktrace.NewBatchSpanProcessor(builder.traceExporter)
 
-	// Create and set the TracerProvider
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSpanProcessor(spanProcessor),
@@ -73,7 +73,6 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 		)),
 	)
 
-	// Set the Global TracerProvider
 	otel.SetTracerProvider(tp)
 
 	// Set global propagator for context propagation
@@ -82,17 +81,52 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 		propagation.Baggage{},
 	))
 
+	// Handle metrics setup if the user enabled metrics
+	var mpShutdown func(context.Context) error
+
+	if builder.metricExporter != nil {
+		mp := metric.NewMeterProvider(
+			metric.WithReader(metric.NewPeriodicReader(builder.metricExporter)),
+			metric.WithResource(resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(serviceName),
+			)),
+		)
+
+		otel.SetMeterProvider(mp) // Set the global MeterProvider
+		mpShutdown = mp.Shutdown
+	}
+
 	// Shutdown function for cleanup
 	shutdown := func(ctx context.Context) {
 		if err := tp.Shutdown(ctx); err != nil {
 			builder.logger.Printf("Error shutting down tracer provider: %v", err)
 		}
+
+		// If metrics were enabled, shut down the meter provider
+		if mpShutdown != nil {
+			if err := mpShutdown(ctx); err != nil {
+				builder.logger.Printf("Error shutting down meter provider: %v", err)
+			}
+		}
 	}
 
-	// Log success and return
 	builder.logger.Println("OpenTelemetry initialized successfully")
 
 	return builder.ctx, shutdown, nil
+}
+
+// WithMetrics enables metric collection and sets up the metric exporter.
+func WithMetrics() InitOption {
+	return func(tb *TelemetryBuilder) {
+		// Set up the default stdout metric exporter for development
+		exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+		if err != nil {
+			tb.logger.Printf("Error setting up metrics exporter: %v", err)
+		}
+
+		tb.metricExporter = exporter
+	}
 }
 
 // WithOLTP sets the OLTP exporter to send traces to an OpenTelemetry collector.
@@ -111,7 +145,7 @@ func WithOLTP() InitOption {
 	}
 }
 
-// WithFileLogging sets up trace exporting to a file
+// WithFileLogging sets up a file exporter to write trace logs to a file.
 func WithFileLogging(filePath string) InitOption {
 	return func(tb *TelemetryBuilder) {
 		const filemode = 0o644
@@ -122,17 +156,20 @@ func WithFileLogging(filePath string) InitOption {
 		file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, filemode)
 		if err != nil {
 			tb.logger.Printf("Error creating file exporter: %v", err)
-
 			return
 		}
 
+		// Set the logger output to file, if needed
+		tb.logger.SetOutput(file)
+
 		// Create the exporter to write to the file
-		exporter, err := stdouttrace.New(stdouttrace.WithWriter(file))
+		exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(file))
 		if err != nil {
 			tb.logger.Printf("Error creating file exporter: %v", err)
 			return
 		}
 
+		// Set the exporter in the TelemetryBuilder
 		tb.exporter = exporter
 	}
 }

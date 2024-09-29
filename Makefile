@@ -29,3 +29,9 @@ build:
 vendor:
 	@go mod download
 	@go mod tidy
+
+basic-example-up:
+	@docker-compose -f examples/basic/docker-compose.yaml up -d
+
+basic-example-down:
+	@docker-compose -f examples/basic/docker-compose.yaml down

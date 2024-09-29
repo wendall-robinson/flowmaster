@@ -1,0 +1,29 @@
+extensions:
+  zpages:
+    endpoint: otel:55679
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: otel:4317
+      http:
+        endpoint: "0.0.0.0:55681"
+
+processors:
+  batch:
+
+exporters:
+  logging:
+    verbosity: detailed
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [zipkin, logging]
+
+  extensions: [zpages]

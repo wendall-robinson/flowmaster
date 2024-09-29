@@ -1,0 +1,43 @@
+services:
+  zipkin:
+    image: openzipkin/zipkin-slim
+    ports:
+      - 9411:9411
+    networks:
+      - example
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:latest
+    command:
+      - "--config=/conf/otel-config.yaml"
+    ports:
+      - 4317:4317
+      - 55681:55681
+    volumes:
+      - ./otel-config.yaml:/conf/otel-config.yaml
+      - /path/to/socket:/path/to/socket
+    networks:
+      - example
+
+  go-app:
+    build:
+      context: ./examples/basic
+      dockerfile: Dockerfile
+    depends_on:
+      - otel
+      - zipkin
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4317"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=example-app"
+      OTEL_TRACES_EXPORTER: "otlp"
+    networks:
+      - example
+    ports:
+      - 8080:8080
+
+networks:
+  example:
+   ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24
