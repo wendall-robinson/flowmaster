@@ -25,10 +25,9 @@ func main() {
 
 	trace := traceflow.New(ctx, "basic-service", traceflow.WithSystemInfo()).AddAttribute(
 		traceflow.AddString("example-attribute", "example-value"),
-	)
+	).Server()
 
-	defer trace.Start("test-span").End()
-	fmt.Printf("Trace: %+v\n", trace)
+	trace.Start("test-span")
 	trace.End()
 
 	// Prevent the app from exiting immediately

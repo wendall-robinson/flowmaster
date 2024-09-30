@@ -2,11 +2,13 @@ package traceflow
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"time"
 
+	"github.com/wendall-robinson/traceflow/internal/errors"
 	"go.opentelemetry.io/otel/propagation"
 
 	"go.opentelemetry.io/otel"
@@ -46,10 +48,34 @@ type TelemetryBuilder struct {
 	batchTimeout   time.Duration
 }
 
-// Init initializes OpenTelemetry with optional tracing and metrics, and returns
-// the initialized context, a shutdown function, and any error encountered.
-// You can enable metrics by using the `WithMetrics` option.
+// Init initializes OpenTelemetry with optional tracing and metrics.
+// It returns the initialized context, a shutdown function, and any encountered error.
+// You can enable metrics by using the `WithMetrics` option, and customize the behavior with additional options.
+//
+// Parameters:
+// - ctx: A context that will be used by OpenTelemetry for trace and metric collection.
+// - serviceName: The name of the service, used to identify the service in tracing systems.
+// - opts: Variadic options that allow configuring tracing, metrics, exporters, etc.
+//
+// Returns:
+// - A context enriched with tracing capabilities, a shutdown function to clean up resources, and any encountered error.
+//
+// Example usage:
+//
+//	ctx, shutdown, err := traceflow.Init(ctx, "my-service", traceflow.WithOLTP("http://otel:4317"))
+//	if err != nil {
+//	    log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+//	}
+//	defer shutdown(ctx)  // Ensure graceful shutdown of the tracing system
+//
+//	// Your application logic goes here
+//
+//	// Clean up OpenTelemetry before exiting
 func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.Context, func(context.Context), error) {
+	if ctx == nil {
+		return nil, nil, errors.ErrTraceExporterCreation
+	}
+
 	builder := &TelemetryBuilder{
 		ctx:    ctx,
 		logger: log.New(os.Stdout, "", log.LstdFlags),
@@ -59,12 +85,18 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 		opt(builder)
 	}
 
+	// If no trace exporter is provided, default to stdout trace exporter
 	if builder.traceExporter == nil {
-		// Default to stdout trace exporter if none is specified
 		builder.traceExporter, _ = stdouttrace.New(stdouttrace.WithPrettyPrint())
-	}
+		if builder.traceExporter == nil {
+			var err error
 
-	builder.logger.Printf("Trace Exporter Config: %+v", builder.traceExporter)
+			builder.traceExporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
+			if err != nil {
+				return nil, nil, fmt.Errorf("%w: %v", errors.ErrStdOutExporter, err)
+			}
+		}
+	}
 
 	spanProcessor := sdktrace.NewBatchSpanProcessor(
 		builder.traceExporter,
@@ -80,15 +112,14 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 		)),
 	)
 
+	// Set global tracer provider and context propagator
 	otel.SetTracerProvider(tp)
-
-	// Set global propagator for context propagation
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	// Handle metrics setup if the user enabled metrics
+	// Optional metrics setup
 	var mpShutdown func(context.Context) error
 
 	if builder.metricExporter != nil {
@@ -100,7 +131,7 @@ func Init(ctx context.Context, serviceName string, opts ...InitOption) (context.
 			)),
 		)
 
-		otel.SetMeterProvider(mp) // Set the global MeterProvider
+		otel.SetMeterProvider(mp)
 		mpShutdown = mp.Shutdown
 	}
 

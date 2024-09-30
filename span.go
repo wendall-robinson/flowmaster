@@ -18,54 +18,46 @@ func NewSpanContext(sc trace.SpanContext) SpanContext {
 	return SpanContext{otelSpanContext: sc}
 }
 
-// SpanKind returns a SpanKind object that allows the caller to set the kind of the span.
-// Span kinds define the role of the span in a distributed trace and categorize the span
-// as one of the following:
-// - Server: Indicates that the span represents a server-side operation.
-// - Client: Indicates that the span represents a client-side operation.
-// - Producer: Indicates that the span represents a message producer.
-// - Consumer: Indicates that the span represents a message consumer.
-//
-// Example usage:
-//
-//	trace.SpanKind().Server().Start("operation")
-//
-// This method returns a SpanKind object, which can be used to set the appropriate
-// span kind. If the SpanKind object has not been previously initialized, it is created
-// and linked to the current trace.
-//
-// Notes:
-//   - Setting the correct span kind is important for accurate tracing and categorization
-//     of operations in distributed systems.
-//   - Ensure that the span kind is set before the span is started to properly classify it.
-func (t *Trace) SpanKind() *SpanKind {
+// Server sets the span kind to server and returns the Trace object for chaining.
+func (t *Trace) Server() *Trace {
 	if t.spanKind == nil {
 		t.spanKind = &SpanKind{trace: t}
 	}
 
-	return t.spanKind
+	t.spanKind.option = trace.WithSpanKind(trace.SpanKindServer)
+
+	return t
 }
 
-// Server sets the span kind to server
-func (s *SpanKind) Server() *Trace {
-	s.option = trace.WithSpanKind(trace.SpanKindServer)
-	return s.trace
+// Client sets the span kind to client and returns the Trace object for chaining.
+func (t *Trace) Client() *Trace {
+	if t.spanKind == nil {
+		t.spanKind = &SpanKind{trace: t}
+	}
+
+	t.spanKind.option = trace.WithSpanKind(trace.SpanKindClient)
+
+	return t
 }
 
-// Client sets the span kind to client
-func (s *SpanKind) Client() *Trace {
-	s.option = trace.WithSpanKind(trace.SpanKindClient)
-	return s.trace
+// Producer sets the span kind to producer and returns the Trace object for chaining.
+func (t *Trace) Producer() *Trace {
+	if t.spanKind == nil {
+		t.spanKind = &SpanKind{trace: t}
+	}
+
+	t.spanKind.option = trace.WithSpanKind(trace.SpanKindProducer)
+
+	return t
 }
 
-// Producer sets the span kind to producer
-func (s *SpanKind) Producer() *Trace {
-	s.option = trace.WithSpanKind(trace.SpanKindProducer)
-	return s.trace
-}
+// Consumer sets the span kind to consumer and returns the Trace object for chaining.
+func (t *Trace) Consumer() *Trace {
+	if t.spanKind == nil {
+		t.spanKind = &SpanKind{trace: t}
+	}
 
-// Consumer sets the span kind to consumer
-func (s *SpanKind) Consumer() *Trace {
-	s.option = trace.WithSpanKind(trace.SpanKindConsumer)
-	return s.trace
+	t.spanKind.option = trace.WithSpanKind(trace.SpanKindConsumer)
+
+	return t
 }
