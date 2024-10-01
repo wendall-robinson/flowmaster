@@ -153,7 +153,7 @@ func (t *Trace) Start(name string) *Trace {
 
 	// Start the span
 	operation := fmt.Sprintf("%s.%s", t.service, name)
-	t.ctx, t.span = t.tracer.Start(t.ctx, operation, t.options...)
+	t.ctx, t.span = t.tracer.Start(trace.ContextWithSpan(t.ctx, trace.SpanFromContext(t.ctx)), operation, t.options...)
 
 	// Clear attributes, links, and options after starting the span to avoid re-use
 	t.attrs = nil
