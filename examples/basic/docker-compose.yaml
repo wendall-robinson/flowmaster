@@ -33,6 +33,21 @@ services:
       OTEL_TRACES_EXPORTER: "otlp"
     networks:
       - example
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    depends_on:
+      - app
+      - otel
+      - zipkin
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4317"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=example-app"
+      OTEL_TRACES_EXPORTER: "otlp"
+    networks:
+      - example
     ports:
       - 8080:8080
 

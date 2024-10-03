@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -60,30 +61,36 @@ func traceIf(ctx context.Context, test bool) {
 }
 
 func sendHTTPRequest(ctx context.Context) {
-	req, _ := http.NewRequest("GET", "http://example.com", nil)
-	req.Header.Set("User-Agent", "Go-http-client/1.1")
-	req.RemoteAddr = "127.0.0.1"
+	// The URL of the endpoint
+	url := "http://web:8080/test"
 
-	trace := traceflow.New(ctx, "mock-http-client").Client()
-	trace.AddHTTPRequest(req)
+	// Create a new GET request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %s", err)
+	}
 
-	defer trace.Start("http-request").End()
+	// Create a new traceflow instance with the context and service name
+	trace := traceflow.New(ctx, "http-client").Client()
 
-	// once the trace has started, inject the trace context into the HTTP request
-	trace.InjectHTTPContext(req)
+	// Start the span and inject the trace context into the request
+	// be sure to inject the context after starting the span
+	defer trace.Start("http-request").InjectHTTPContext(req).End()
 
-	_ = receiveHTTPResponse(req)
-}
+	// Perform the request using http.DefaultClient
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to make request: %s", err)
+	}
 
-func receiveHTTPResponse(req *http.Request) bool {
-	ctx := context.Background()
+	defer resp.Body.Close()
 
-	trace := traceflow.New(ctx, "mock-remote-http-service").Server()
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Failed to read response body: %s", err)
+	}
 
-	// extract the trace context from the HTTP request
-	trace.ExtractHTTPContext(req).AddHTTPResponse(200, 1234)
-
-	defer trace.Start("http-response").End()
-
-	return true
+	// Print the response
+	fmt.Println(string(body))
 }
