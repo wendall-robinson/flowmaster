@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/wendall-robinson/traceflow/internal/errors"
+	"github.com/wendall-robinson/flowmaster/traceflow/internal/errors"
 	"go.opentelemetry.io/otel/propagation"
 
 	"go.opentelemetry.io/otel"

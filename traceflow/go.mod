@@ -1,4 +1,4 @@
-module github.com/wendall-robinson/traceflow
+module github.com/wendall-robinson/flowmaster/traceflow
 
 go 1.22
 
