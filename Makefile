@@ -2,7 +2,7 @@ all: lint test
 PHONY: test coverage lint golint clean vendor docker-up docker-down unit-test, build
 GOOS=linux
 # use the working dir as the app name, this should be the repo name
-APP_NAME=$(shell basename $(CURDIR))
+APP_NAME=$(shell basename $(CURDIR)/traceflow)
 
 test: | unit-test
 
