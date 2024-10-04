@@ -27,6 +27,7 @@ services:
     depends_on:
       - otel
       - zipkin
+      - web
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4317"
       OTEL_RESOURCE_ATTRIBUTES: "service.name=example-app"
@@ -39,7 +40,6 @@ services:
       context: .
       dockerfile: web/Dockerfile
     depends_on:
-      - app
       - otel
       - zipkin
     environment:

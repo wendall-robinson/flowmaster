@@ -10,10 +10,8 @@ import (
 )
 
 func testHandler(w http.ResponseWriter, r *http.Request) {
-	trace := traceflow.New(r.Context(), "http-handler").Server()
-	trace.ExtractHTTPContext(r)
-
-	defer trace.Start("testing-endpoint").End()
+	trace := traceflow.Now(r.Context(), "http-handler", "testing-endpoint", traceflow.WithHTTPContext(r))
+	defer trace.End()
 
 	fmt.Fprintf(w, "hello world!")
 

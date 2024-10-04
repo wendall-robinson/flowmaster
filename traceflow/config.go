@@ -1,10 +1,13 @@
 package traceflow
 
 import (
+	"net/http"
 	"os"
 	"runtime"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // Option defines a function signature for modifying the Trace object
@@ -59,5 +62,13 @@ func WithEnVars(keys []string) Option {
 				t.attrs = append(t.attrs, attribute.String(key, value))
 			}
 		}
+	}
+}
+
+func WithHTTPContext(req *http.Request) Option {
+	return func(t *Trace) {
+		propagator := otel.GetTextMapPropagator()
+		ctx := propagator.Extract(t.ctx, propagation.HeaderCarrier(req.Header))
+		t.ctx = ctx
 	}
 }

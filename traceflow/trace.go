@@ -163,6 +163,15 @@ func (t *Trace) Start(name string) *Trace {
 	return t
 }
 
+// Now creates and starts a trace with options immediately.
+func Now(ctx context.Context, name, operation string, opts ...Option) *Trace {
+	trace := New(ctx, name, opts...)
+
+	trace.Start(operation)
+
+	return trace
+}
+
 // AddAttribute appends one or more OpenTelemetry attributes to the current trace.
 // This method accepts variadic attribute.KeyValue arguments, allowing the caller
 // to add single or multiple attributes in a single call. It supports both OpenTelemetry
