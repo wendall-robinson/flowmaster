@@ -40,7 +40,7 @@ import (
     "context"
     "log"
 
-    "github.com/wendall-robinson/traceflow"
+    "github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
@@ -161,7 +161,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/wendall-robinson/traceflow"
+	"github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
