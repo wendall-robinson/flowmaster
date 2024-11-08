@@ -27,7 +27,7 @@ In modern, distributed systems, it's crucial to have observability tools like tr
 To install TraceFlow, use `go get`:
 
 ```bash
-go get github.com/wendall-robinson/traceflow
+go get github.com/wendall-robinson/flowmaster/traceflow
 ```
 ## Quick Start
 **Basic Usage Example**
