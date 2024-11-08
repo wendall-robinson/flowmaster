@@ -212,7 +212,7 @@ import (
 	"fmt"
 	"net/http"
 	"log"
-	"github.com/wendall-robinson/traceflow"
+	"github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
