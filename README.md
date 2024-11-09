@@ -27,7 +27,7 @@ In modern, distributed systems, it's crucial to have observability tools like tr
 To install TraceFlow, use `go get`:
 
 ```bash
-go get github.com/wendall-robinson/traceflow
+go get github.com/wendall-robinson/flowmaster/traceflow
 ```
 ## Quick Start
 **Basic Usage Example**
@@ -40,7 +40,7 @@ import (
     "context"
     "log"
 
-    "github.com/wendall-robinson/traceflow"
+    "github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
@@ -161,7 +161,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/wendall-robinson/traceflow"
+	"github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
@@ -212,7 +212,7 @@ import (
 	"fmt"
 	"net/http"
 	"log"
-	"github.com/wendall-robinson/traceflow"
+	"github.com/wendall-robinson/flowmaster/traceflow"
 )
 
 func main() {
