@@ -12,6 +12,7 @@ receivers:
 
 processors:
   batch:
+    timeout: 200ms
 
 exporters:
   logging:
