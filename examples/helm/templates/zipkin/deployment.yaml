@@ -1,0 +1,25 @@
+---
+{{- if .Values.zipkin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zipkin.fullname" . }}
+  labels:
+    app: {{ include "zipkin.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "zipkin.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "zipkin.name" . }}
+    spec:
+      containers:
+        - name: zipkin
+          image: "{{ .Values.zipkin.image.repository }}:{{ .Values.zipkin.image.tag }}"
+          imagePullPolicy: {{ .Values.zipkin.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.zipkin.service.port }}
+{{- end }}

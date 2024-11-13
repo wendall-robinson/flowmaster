@@ -2,50 +2,50 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: otel-collector
+  name: {{ include "collector.fullname" . }}
   labels:
-    app: otel-collector
+    app: {{ include "collector.name" . }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: otel-collector
+      app: {{ include "collector.name" . }}
   template:
     metadata:
       labels:
-        app: otel-collector
+        app: {{ include "collector.name" . }}
     spec:
       volumes:
         - name: otel-collector-config
           configMap:
-            name: otel-collector
+            name: {{ include "collector.fullname" . }}-config
             items:
               - key: otel-config.yaml
                 path: otel-config.yaml
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:latest
+          image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+          imagePullPolicy: {{ .Values.otelCollector.image.pullPolicy }}
           command:
-            - "/otelcol-contrib"
-            - "--config=/conf/otel-config.yaml"
+            - {{ .Values.otelCollector.command }}
+            - "--config={{ .Values.otelCollector.configPath }}"
           ports:
-            - name: otlp-http
-              containerPort: 55681
-              protocol: TCP
-            - name: otlp-grpc
-              containerPort: 4317
-              protocol: TCP
+            {{- range .Values.otelCollector.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .targetPort }}
+              protocol: {{ .protocol }}
+            {{- end }}
           volumeMounts:
             - name: otel-collector-config
-              mountPath: /conf
+              mountPath: {{ .Values.otelCollector.configMountPath }}
           livenessProbe:
             httpGet:
-              path: /
-              port: 13133
-            initialDelaySeconds: 10
-            timeoutSeconds: 5
+              path: {{ .Values.otelCollector.livenessProbe.path }}
+              port: {{ .Values.otelCollector.livenessProbe.port }}
+            initialDelaySeconds: {{ .Values.otelCollector.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.otelCollector.livenessProbe.timeoutSeconds }}
           readinessProbe:
             httpGet:
-              path: /
-              port: 13133
-            initialDelaySeconds: 10
+              path: {{ .Values.otelCollector.readinessProbe.path }}
+              port: {{ .Values.otelCollector.readinessProbe.port }}
+            initialDelaySeconds: {{ .Values.otelCollector.readinessProbe.initialDelaySeconds }}
