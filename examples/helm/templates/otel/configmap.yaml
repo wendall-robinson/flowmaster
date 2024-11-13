@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "collector.fullname" . }}-config
+data:
+  otel-config.yaml: |-
+    {{ .Files.Get "otel-config.yaml" | nindent 4 }}

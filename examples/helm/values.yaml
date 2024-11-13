@@ -1,0 +1,52 @@
+# values.yaml
+
+replicaCount: 1
+
+otelCollector:
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.81.0"
+    pullPolicy: IfNotPresent
+
+  command: "/otelcol-contrib"
+  configPath: "/conf/otel-config.yaml"
+  configMountPath: "/conf"
+
+  ports:
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317        # Service port
+      targetPort: 4317  # Container port
+    - name: otlp-http
+      protocol: TCP
+      port: 55681
+      targetPort: 55681
+    - name: health-check
+      protocol: TCP
+      port: 13133
+      targetPort: 13133
+
+  livenessProbe:
+    path: /
+    port: 13133
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    path: /
+    port: 13133
+    initialDelaySeconds: 10
+
+  service:
+    type: ClusterIP
+
+zipkin:
+  enabled: true
+  image:
+    repository: openzipkin/zipkin
+    tag: "2.23"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 9411
