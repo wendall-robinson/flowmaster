@@ -2,16 +2,24 @@ package rabbitmqcarrier
 
 import (
 	"github.com/streadway/amqp"
+	"go.opentelemetry.io/otel/propagation"
 )
 
-// RabbitMQHeaderCarrier adapts amqp.Table to satisfy the TextMapCarrier interface.
-type RabbitMQHeaderCarrier struct {
-	headers amqp.Table
+// AMQPTableCarrier is a TextMapCarrier for AMQP headers.
+type AMQPTableCarrier struct {
+	Headers amqp.Table
 }
 
-// Get retrieves the value of the header with the given key.
-func (c *RabbitMQHeaderCarrier) Get(key string) string {
-	if val, ok := c.headers[key]; ok {
+// New creates a new AMQPTableCarrier.
+func New(headers amqp.Table) *AMQPTableCarrier {
+	return &AMQPTableCarrier{
+		Headers: headers,
+	}
+}
+
+// Get returns the value associated with the key.
+func (c *AMQPTableCarrier) Get(key string) string {
+	if val, ok := c.Headers[key]; ok {
 		if strVal, ok := val.(string); ok {
 			return strVal
 		}
@@ -20,17 +28,20 @@ func (c *RabbitMQHeaderCarrier) Get(key string) string {
 	return ""
 }
 
-// Set sets the value of the header with the given key.
-func (c *RabbitMQHeaderCarrier) Set(key, value string) {
-	c.headers[key] = value
+// Set stores the key-value pair.
+func (c *AMQPTableCarrier) Set(key, value string) {
+	c.Headers[key] = value
 }
 
-// Keys returns the keys of the headers.
-func (c *RabbitMQHeaderCarrier) Keys() []string {
-	keys := make([]string, 0, len(c.headers))
-	for key := range c.headers {
-		keys = append(keys, key)
+// Keys returns the keys of the AMQPTableCarrier.
+func (c *AMQPTableCarrier) Keys() []string {
+	keys := make([]string, 0, len(c.Headers))
+	for k := range c.Headers {
+		keys = append(keys, k)
 	}
 
 	return keys
 }
+
+// Ensure AMQPTableCarrier implements TextMapCarrier
+var _ propagation.TextMapCarrier = (*AMQPTableCarrier)(nil)
