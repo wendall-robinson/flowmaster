@@ -2,58 +2,79 @@ package logflow
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
-	info    = "INFO"
-	warning = "WARNING"
-	debug   = "DEBUG"
-	prod    = "PROD"
-	dev     = "DEV"
-	stage   = "STAGE"
-	err     = "ERROR"
+	// INFO level log
+	INFO = "INFO"
+	// WARN level log
+	WARN = "WARN"
+	// DEBUG level log
+	DEBUG = "DEBUG"
+	// ERROR level log
+	ERROR = "ERROR"
 )
 
-// LogEntry represents a structured log entry
-type LogEntry struct {
-	Timestamp   time.Time              `json:"timestamp,omitempty"`   // When the event occurred
-	Level       string                 `json:"level,omitempty"`       // Log level (INFO, ERROR, etc.)
-	Message     string                 `json:"message,omitempty"`     // Log message
-	Context     map[string]interface{} `json:"context,omitempty"`     // Additional metadata
-	Source      string                 `json:"source,omitempty"`      // Source module/system
-	Environment string                 `json:"environment,omitempty"` // Environment (dev, prod, etc.)
-	TraceID     string                 `json:"trace_id,omitempty"`    // Trace ID for distributed tracing
-	SpanID      string                 `json:"span_id,omitempty"`     // Span ID for distributed tracing
-	ErrorCode   string                 `json:"error_code,omitempty"`  // Error code (if applicable)
-	Hostname    string                 `json:"hostname,omitempty"`    // Hostname or server name
-	LogID       string                 `json:"log_id,omitempty"`      // Unique log identifier
+var (
+	errNoLogLevel      = errors.New("log level must be specified")
+	errTimeStampFormat = errors.New("timestamp format must be specified")
+)
+
+// LoggerConfig holds configuration options for the logger
+type LoggerConfig struct {
+	OutputToStdout     bool              // Whether to print logs to stdout
+	LogCollector       LogCollector      // Interface for sending logs to a centralized collector
+	LogLevel           string            // Minimum log level to output (e.g., INFO, DEBUG)
+	TimestampFmt       string            // Format for timestamps (e.g., RFC3339, Unix)
+	IncludeHostname    bool              // Include hostname in logs
+	IncludeEnvironment bool              // Include environment (e.g., dev, prod)
+	IncludeSystem      bool              // Include system metadata in all logs
+	IncludeK8s         bool              // Include Kubernetes metadata in logs
+	IncludeYANG        bool              // Include YANG-based configuration metadata
+	YANGConfig         map[string]string // YANG-based configuration metadata
+	K8sConfig          map[string]string // Kubernetes metadata
 }
 
-// SetDefaults sets default values for the log entry
-func (e *LogEntry) SetDefaults() {
-	if e.Timestamp.IsZero() {
-		e.Timestamp = time.Now()
-	}
+// LogCollector defines an interface for sending logs to a centralized logging system
+type LogCollector interface {
+	Send(data []byte) error
+}
 
-	if e.Level == "" {
-		e.Level = info
+// DefaultLoggerConfig returns a LoggerConfig with default settings
+func DefaultLoggerConfig() LoggerConfig {
+	return LoggerConfig{
+		OutputToStdout:     true,
+		LogLevel:           INFO,
+		TimestampFmt:       time.RFC3339,
+		IncludeHostname:    false,
+		IncludeEnvironment: false,
+		IncludeSystem:      false,
+		IncludeK8s:         false,
+		IncludeYANG:        false,
 	}
 }
 
-func (e LogEntry) Validate() error {
-	// List of required fields
-	if e.Timestamp.IsZero() {
-		return fmt.Errorf("missing required field: timestamp")
+// SetDefaults populates default values for missing configuration options
+func (c *LoggerConfig) SetDefaults() {
+	if c.TimestampFmt == "" {
+		c.TimestampFmt = time.RFC3339
+	}
+	if c.LogLevel == "" {
+		c.LogLevel = INFO
+	}
+}
+
+// Validate checks if the LoggerConfig is valid
+func (c *LoggerConfig) Validate() error {
+	if c.LogLevel == "" {
+		return errNoLogLevel
 	}
 
-	if e.Level == "" {
-		return fmt.Errorf("missing required field: level")
-	}
-
-	if e.Message == "" {
-		return fmt.Errorf("missing required field: message")
+	if c.TimestampFmt == "" {
+		return errTimeStampFormat
 	}
 
 	return nil

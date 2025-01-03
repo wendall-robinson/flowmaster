@@ -19,16 +19,21 @@ coverage:
 lint: golint
 
 golint: | vendor
-	@echo Linting Go files...
-	@golangci-lint run
+	@echo --- Linting Go files...
+	golangci-lint run
 
-build:
-	@go mod download
-	@CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o bin/${APP_NAME}
+golint-fix: | vendor
+	@echo --- Linting Go files...
+	golangci-lint run --fix
 
 vendor:
 	@go mod download
 	@go mod tidy
+
+fmt:
+	go fmt ./...
+	# required by the gofumpt linter:
+	gofumpt -l -w -extra .
 
 basic-example-up:
 	cd examples/basic && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o main

@@ -12,8 +12,8 @@ type HTTP struct {
 	Remote  string            `json:"http_remote_addr,omitempty"` // Remote address
 }
 
-// extractHttpMetadata extracts HTTP metadata from an HTTP request
-func extractHttpMetadata(req *http.Request, statusCode int) HTTP {
+// extractHTTPMetadata extracts HTTP metadata from an HTTP request
+func extractHTTPMetadata(req *http.Request, statusCode int) HTTP {
 	if req == nil {
 		return HTTP{}
 	}

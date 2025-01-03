@@ -19,23 +19,21 @@ linters:
     - bodyclose
     - gocritic
     - gocyclo
-    - goerr113
+    - err113
     - gofmt
     - gofumpt
     - goimports
-    - gomnd
     - govet
     - misspell
     - noctx
     - revive
     - stylecheck
     - whitespace
-    - wsl
+
 run:
   tests: false
   build-tags:
     - "testtools"
-  # modules-download-mode: readonly
 
 issues:
   exclude:

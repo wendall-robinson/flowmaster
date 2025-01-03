@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
-
 	"net/http"
 	"time"
 
@@ -21,7 +21,11 @@ func main() {
 	ctx := context.Background()
 
 	// Init the logger
-	logger := log.NewLogger()
+	logger, err := log.New()
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v", err)
+		panic(err)
+	}
 
 	app := App{
 		ctx:    ctx,
@@ -109,5 +113,5 @@ func (a *App) sendHTTPRequest() {
 		a.logger.Info("Failed to read response body")
 	}
 
-	a.logger.InfoHttp("HTTP Request", req, resp.StatusCode, "response", string(body))
+	a.logger.InfoHTTP("HTTP Request", req, resp.StatusCode, "response", string(body))
 }

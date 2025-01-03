@@ -1,10 +1,9 @@
 module github.com/wendall-robinson/flowmaster
 
-go 1.22
-
-toolchain go1.22.7
+go 1.23.4
 
 require (
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/otel v1.30.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.30.0

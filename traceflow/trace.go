@@ -374,6 +374,19 @@ func (t *Trace) GetTraceID() string {
 	return ""
 }
 
+// FindTraceID returns the unique trace ID for a provided context.
+//
+// If the context contains a valid trace, the trace ID is returned as a string.
+func FindTraceID(ctx context.Context) string {
+	// finds the TraceID in a provided context
+	sc := trace.SpanContextFromContext(ctx)
+	if sc.IsValid() {
+		return sc.TraceID().String()
+	}
+
+	return ""
+}
+
 // GetParentID returns the parent span ID of the current trace, if it exists.
 // This ID represents the span from which the current span is derived, allowing
 // the trace to establish relationships between parent and child spans.

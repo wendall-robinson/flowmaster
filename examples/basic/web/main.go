@@ -14,7 +14,6 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	defer trace.End()
 
 	fmt.Fprintf(w, "hello world!")
-
 }
 
 func main() {

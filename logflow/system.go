@@ -9,6 +9,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
+// SystemAttributes represents system attributes for a log entry
 type SystemAttributes struct {
 	OperatingSystem  string           `json:"operating_system,omitempty"`
 	MemoryUsage      Memory           `json:"memory_usage,omitempty"`
@@ -17,6 +18,7 @@ type SystemAttributes struct {
 	RunningProcesses RunningProcesses `json:"running_processes,omitempty"`
 }
 
+// Memory represents memory usage statistics
 type Memory struct {
 	TotalMemory  uint64 `json:"total_memory,omitempty"`
 	UsedMemory   uint64 `json:"used_memory,omitempty"`
@@ -29,6 +31,7 @@ type Memory struct {
 	GCPauseTotal uint64 `json:"gc_pause_total,omitempty"`
 }
 
+// Disk represents disk usage statistics
 type Disk struct {
 	Path             string  `json:"path,omitempty"`
 	TotalDiskSpace   uint64  `json:"total_disk_space,omitempty"`
@@ -37,10 +40,12 @@ type Disk struct {
 	DiskUsagePercent float64 `json:"disk_usage_percent,omitempty"`
 }
 
+// CPU represents CPU usage statistics
 type CPU struct {
 	UsagePercent interface{} `json:"usage_percent,omitempty"`
 }
 
+// RunningProcesses represents a list of running processes
 type RunningProcesses struct {
 	Processes interface{} `json:"processes,omitempty"`
 }
@@ -58,6 +63,38 @@ func (l *Logger) findSystemAttributes(entry *LogEntry) *LogEntry {
 	entry.Context["system_attributes"] = attributes
 
 	return entry
+}
+
+// systemAttribuesExists checks if the system attributes field exists in the context.
+//
+//   - If it exists, it returns the existing SystemAttributes pointer and true.
+//   - If it doesn't it
+func systemAttribuesExists(context map[string]interface{}) (*SystemAttributes, bool) {
+	// Check if "system_attributes" already exists
+	if attributes, ok := context["system_attributes"].(*SystemAttributes); ok {
+		return attributes, true
+	}
+
+	return &SystemAttributes{}, false
+}
+
+// systemAttribuesFieldExists checks if a specific field exists in the SystemAttributes struct.
+func systemAttribuesFieldExists(attributes *SystemAttributes, field string) bool {
+	// check if field is in attributes
+	switch field {
+	case "OperatingSystem":
+		return attributes.OperatingSystem != ""
+	case "MemoryUsage":
+		return (attributes.MemoryUsage != Memory{})
+	case "DiskUsage":
+		return (attributes.DiskUsage != Disk{})
+	case "CPUUsagePercent":
+		return (attributes.CPUUsagePercent != CPU{})
+	case "RunningProcesses":
+		return (attributes.RunningProcesses != RunningProcesses{})
+	default:
+		return false
+	}
 }
 
 // getOperatingSystem returns the operating system name
@@ -113,11 +150,13 @@ func (l *Logger) getDiskUsage(path string) Disk {
 func (l *Logger) getCPUUsage() CPU {
 	cpuUsage := CPU{}
 	cpuPercentages, err := cpu.Percent(0, false) // Overall CPU usage
+
 	if err == nil && len(cpuPercentages) > 0 {
 		cpuUsage.UsagePercent = cpuPercentages[0]
 	} else {
 		cpuUsage.UsagePercent = nil
 	}
+
 	return cpuUsage
 }
 
