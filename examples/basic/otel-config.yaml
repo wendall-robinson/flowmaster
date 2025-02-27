@@ -15,7 +15,7 @@ processors:
     timeout: 200ms
 
 exporters:
-  logging:
+  debug:
     verbosity: detailed
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
@@ -25,6 +25,6 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [zipkin, logging]
+      exporters: [zipkin, debug]
 
   extensions: [zpages]

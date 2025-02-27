@@ -65,6 +65,7 @@ func WithEnVars(keys []string) Option {
 	}
 }
 
+// WithHTTPContext extracts the OpenTelemetry context from the HTTP request headers.
 func WithHTTPContext(req *http.Request) Option {
 	return func(t *Trace) {
 		propagator := otel.GetTextMapPropagator()
