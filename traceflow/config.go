@@ -65,7 +65,14 @@ func WithEnVars(keys []string) Option {
 	}
 }
 
-// WithHTTPContext extracts the OpenTelemetry context from the HTTP request headers.
+// WithHTTPContext extracts the trace context from the HTTP request headers.
+// This is useful when you want to propagate the trace context from an incoming HTTP request.
+//
+// Example usage:
+//
+//	func MyHandler(w http.ResponseWriter, r *http.Request) {
+//		trace := traceflow.New(ctx, "my-service", traceflow.WithHTTPContext(r))
+//	}
 func WithHTTPContext(req *http.Request) Option {
 	return func(t *Trace) {
 		propagator := otel.GetTextMapPropagator()
