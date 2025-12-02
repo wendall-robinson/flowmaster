@@ -45,6 +45,11 @@ func main() {
 	// Test the HTTP request span, be sure to pass in the trace context to propagate the trace
 	sendHTTPRequest(trace.GetContext())
 
+	// Adding attributes after the trace has started
+	trace.AddAttribute(
+		traceflow.AddString("test-attribute", "after-started"),
+	)
+
 	// End the main span when all other spans are complete
 	trace.End()
 

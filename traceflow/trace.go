@@ -192,8 +192,21 @@ func Now(ctx context.Context, name, operation string, opts ...Option) *Trace {
 //
 // AddAttribute accepts one or more custom TraceFlow attributes and appends them to the trace.
 func (t *Trace) AddAttribute(attrs ...Attribute) *Trace {
-	for _, attr := range attrs {
-		t.attrs = append(t.attrs, attr.otelAttr)
+	if len(attrs) == 0 {
+		return t
+	}
+
+	kvs := make([]attribute.KeyValue, len(attrs))
+	for i, attr := range attrs {
+		kvs[i] = attr.otelAttr
+	}
+
+	// Always keep them in the buffer (for future spans or inspection)
+	t.attrs = append(t.attrs, kvs...)
+
+	// If we already have a live span, pus only the new attributes
+	if t.span != nil {
+		t.span.SetAttributes(kvs...)
 	}
 
 	return t
